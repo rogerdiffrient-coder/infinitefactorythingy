@@ -170,7 +170,16 @@ export class VoxelWorld {
 	}
 
 	rebuildAllChunks() {
+		this.generating = true;
 		for (const chunk of this.chunks.values()) chunk.rebuildMesh();
+		this.generating = false;
+		this.scene.metadata?.iftRefreshShadowCasters?.();
+	}
+
+	dispose() {
+		for (const chunk of this.chunks.values()) chunk.disposeMesh();
+		this.chunks.clear();
+		this.scene.metadata?.iftRefreshShadowCasters?.();
 	}
 
 	getChunkStats() {
