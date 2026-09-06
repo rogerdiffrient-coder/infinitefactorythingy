@@ -1,5 +1,5 @@
 import { WORLD_CONFIG } from '../config.js';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=grass-cache-fix-2';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
