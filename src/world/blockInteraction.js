@@ -1,4 +1,4 @@
-import { BLOCKS, getBlockDefinition } from './blockRegistry.js';
+import { BLOCKS, getBlockDefinition } from './blockRegistry.js?v=bug-sweep-15';
 
 const SELECTABLE_BLOCKS = [BLOCKS.GRASS, BLOCKS.DIRT, BLOCKS.DIRT_STONE_MIX, BLOCKS.STONE];
 const BREAK_SECONDS = 0.45;
