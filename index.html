@@ -12,9 +12,16 @@
 	<div id="hud" class="hud hidden">
 		<div id="healthBar" class="health-bar" aria-label="Health"></div>
 		<div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
+		<div id="suffocationShade" class="suffocation-shade" aria-hidden="true"></div>
+		<div id="hotbar" class="hotbar" aria-label="Selected block">
+			<div class="hotbar-slot selected" data-block-id="1"><img src="Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png" alt="Grass Block"></div>
+			<div class="hotbar-slot" data-block-id="2"><img src="Assets/Blocks/Terrain/Dirt-Block/dirt-all-faces.png" alt="Dirt Block"></div>
+			<div class="hotbar-slot" data-block-id="3"><img src="Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png" alt="Stone Block"></div>
+			<div id="selectedBlockName" class="selected-block-name">Grass Block</div>
+		</div>
 		<div id="devLeft" class="dev-left hidden">
 			<div class="brand">INFINITE FACTORY THINGY <span>3D PROTOTYPE</span></div>
-			<div class="controls">WASD move · Ctrl sprint · Shift sneak · Space jump · Esc unlock mouse</div>
+			<div class="controls">WASD move · Ctrl sprint · Shift sneak · Space jump · LMB break · RMB place · Wheel select · Esc unlock mouse</div>
 		</div>
 		<div id="debug" class="debug hidden"></div>
 		<div class="crosshair" aria-hidden="true"></div>
@@ -25,7 +32,7 @@
 		<div class="boot-card">
 			<div class="eyebrow">INFINITE FACTORY THINGY</div>
 			<h1>THE FACTORY IS NOW 3D.</h1>
-			<p>First milestone: real voxel chunks, crisp 16×16 textures, exact player scale, collisions, and a browser-first controller.</p>
+			<p>Voxel chunks, crisp 16×16 textures, proper movement, health, and now actual block interaction.</p>
 			<button id="playButton" type="button">ENTER WORLD</button>
 			<div id="bootStatus">Preparing chunks…</div>
 		</div>
