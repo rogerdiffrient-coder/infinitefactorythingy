@@ -4,6 +4,9 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 	<title>Infinite Factory Thingy</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,44 +14,44 @@
 
 	<div id="titleScreen" class="title-screen">
 		<div class="title-shell">
-			<header class="title-header">
+			<header class="title-header pixel-panel">
 				<div class="title-kicker">INFINITE FACTORY THINGY</div>
 				<h1>BUILD SOMETHING RIDICULOUS.</h1>
 				<p>Create worlds, come back later, and eventually cover them in an unreasonable amount of machinery.</p>
 			</header>
 
 			<div class="title-actions">
-				<button id="newWorldButton" class="primary-title-button" type="button">CREATE NEW WORLD</button>
+				<button id="newWorldButton" class="primary-title-button pixel-button" type="button">CREATE NEW WORLD</button>
 			</div>
 
-			<section class="world-browser" aria-label="Worlds">
+			<section class="world-browser pixel-panel" aria-label="Worlds">
 				<div class="world-browser-heading">
-					<h2>Your Worlds</h2>
-					<span>Stored locally in this browser</span>
+					<h2>YOUR WORLDS</h2>
+					<span>STORED LOCALLY</span>
 				</div>
-				<div id="emptyWorlds" class="empty-worlds">No worlds yet. Time to make one.</div>
+				<div id="emptyWorlds" class="empty-worlds">NO WORLDS YET. MAKE ONE.</div>
 				<div id="worldList" class="world-list"></div>
 			</section>
 		</div>
 
 		<div id="createWorldPanel" class="create-world-panel hidden" role="dialog" aria-modal="true" aria-labelledby="createWorldTitle">
-			<div class="create-world-card">
+			<div class="create-world-card pixel-panel">
 				<div class="title-kicker">NEW WORLD</div>
-				<h2 id="createWorldTitle">Generate a factory world</h2>
+				<h2 id="createWorldTitle">GENERATE A FACTORY WORLD</h2>
 				<label>
-					<span>World name</span>
-					<input id="worldNameInput" maxlength="48" autocomplete="off" placeholder="My Extremely Normal Factory">
+					<span>WORLD NAME</span>
+					<input id="worldNameInput" maxlength="48" autocomplete="off" placeholder="MY FACTORY">
 				</label>
 				<label>
-					<span>Seed</span>
+					<span>SEED</span>
 					<div class="seed-row">
-						<input id="seedInput" inputmode="numeric" autocomplete="off" placeholder="Random">
-						<button id="randomSeedButton" type="button">RANDOMIZE</button>
+						<input id="seedInput" inputmode="numeric" autocomplete="off" placeholder="RANDOM">
+						<button id="randomSeedButton" class="pixel-button" type="button">RANDOMIZE</button>
 					</div>
 				</label>
 				<div class="create-world-actions">
-					<button id="cancelCreateWorld" type="button">CANCEL</button>
-					<button id="confirmCreateWorld" class="primary-title-button" type="button">CREATE WORLD</button>
+					<button id="cancelCreateWorld" class="pixel-button" type="button">CANCEL</button>
+					<button id="confirmCreateWorld" class="primary-title-button pixel-button" type="button">CREATE WORLD</button>
 				</div>
 			</div>
 		</div>
@@ -62,11 +65,11 @@
 			<div class="hotbar-slot selected" data-block-id="1"><kbd>1</kbd><img src="Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png" alt="Grass Block"></div>
 			<div class="hotbar-slot" data-block-id="2"><kbd>2</kbd><img src="Assets/Blocks/Terrain/Dirt-Block/dirt-all-faces.png" alt="Dirt Block"></div>
 			<div class="hotbar-slot" data-block-id="3"><kbd>3</kbd><img src="Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png" alt="Stone Block"></div>
-			<div id="selectedBlockName" class="selected-block-name">Grass Block</div>
+			<div id="selectedBlockName" class="selected-block-name">GRASS BLOCK</div>
 		</div>
 		<div id="devLeft" class="dev-left hidden">
 			<div class="brand">INFINITE FACTORY THINGY <span>3D PROTOTYPE</span></div>
-			<div class="controls">WASD move · Ctrl sprint · Shift sneak · Hold Space jump · 1/2/3 or Wheel select · LMB break · RMB place · Esc pause</div>
+			<div class="controls">WASD MOVE · CTRL SPRINT · SHIFT SNEAK · HOLD SPACE JUMP · 1/2/3 OR WHEEL SELECT · LMB BREAK · RMB PLACE · ESC PAUSE</div>
 		</div>
 		<div id="debug" class="debug hidden"></div>
 		<div class="crosshair" aria-hidden="true"></div>
@@ -74,11 +77,14 @@
 	</div>
 
 	<div id="boot" class="boot hidden">
-		<div class="boot-card">
+		<div class="boot-card pixel-panel">
 			<div class="eyebrow">INFINITE FACTORY THINGY</div>
 			<h1>PAUSED</h1>
-			<p id="bootStatus">Click below to jump back into the world.</p>
-			<button id="playButton" type="button">RETURN TO WORLD</button>
+			<p id="bootStatus">WORLD PAUSED</p>
+			<div class="pause-actions">
+				<button id="playButton" class="pixel-button" type="button">RETURN TO WORLD</button>
+				<button id="mainMenuButton" class="pixel-button secondary-button" type="button">RETURN TO MAIN MENU</button>
+			</div>
 		</div>
 	</div>
 
