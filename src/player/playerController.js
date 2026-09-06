@@ -1,17 +1,18 @@
 import { PLAYER_CONFIG } from '../config.js';
 
-const GROUND_PROBE_START = 0.12;
-const GROUND_PROBE_LENGTH = 0.22;
-const SPAWN_CLEARANCE = 0.03;
+const GROUND_TOLERANCE = 0.08;
+const SPAWN_CLEARANCE = 0.002;
 
 export class PlayerController {
-	constructor(scene, canvas, input) {
+	constructor(scene, canvas, input, world) {
 		this.scene = scene;
 		this.canvas = canvas;
 		this.input = input;
+		this.world = world;
 		this.verticalVelocity = 0;
 		this.grounded = false;
 		this.sneaking = false;
+		this.currentHeight = PLAYER_CONFIG.HEIGHT;
 
 		this.body = BABYLON.MeshBuilder.CreateBox('player-collider', { size: 0.1 }, scene);
 		this.body.isVisible = false;
@@ -22,7 +23,7 @@ export class PlayerController {
 			PLAYER_CONFIG.HEIGHT / 2,
 			PLAYER_CONFIG.WIDTH / 2
 		);
-		this.body.ellipsoidOffset = new BABYLON.Vector3(0, PLAYER_CONFIG.HEIGHT / 2, 0);
+		this.body.ellipsoidOffset = BABYLON.Vector3.Zero();
 
 		this.camera = new BABYLON.UniversalCamera('player-camera', BABYLON.Vector3.Zero(), scene);
 		this.camera.minZ = 0.03;
@@ -35,37 +36,38 @@ export class PlayerController {
 		this.scene.activeCamera = this.camera;
 	}
 
-	spawn(x, y, z) {
+	spawnAtFeet(x, feetY, z) {
 		this.verticalVelocity = 0;
-		this.grounded = false;
-		this.body.position.set(x, y, z);
-		this.camera.position.set(x, y + PLAYER_CONFIG.EYE_LEVEL, z);
+		this.grounded = true;
+		this.currentHeight = PLAYER_CONFIG.HEIGHT;
+		this.body.ellipsoid.y = this.currentHeight / 2;
+		this.body.position.set(x, feetY + this.currentHeight / 2, z);
+		this.syncCamera();
 	}
 
-	spawnOnSurface(x, z, castFromY = 64) {
-		const ray = new BABYLON.Ray(
-			new BABYLON.Vector3(x, castFromY, z),
-			BABYLON.Vector3.Down(),
-			castFromY + 128
-		);
-		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
-		if (!hit?.hit || !hit.pickedPoint) {
-			this.spawn(x, castFromY, z);
+	spawnOnSurface(x, z) {
+		const surfaceY = this.world.getSurfaceYAt(x, z);
+		if (surfaceY === null) {
+			this.spawnAtFeet(x, 16, z);
+			this.grounded = false;
 			return false;
 		}
-
-		this.spawn(x, hit.pickedPoint.y + SPAWN_CLEARANCE, z);
+		this.spawnAtFeet(x, surfaceY + SPAWN_CLEARANCE, z);
 		return true;
 	}
 
 	update(dt) {
+		const wasSneaking = this.sneaking;
 		this.sneaking = this.input.down('ShiftLeft', 'ShiftRight');
 		const sprinting = this.input.down('ControlLeft', 'ControlRight') && !this.sneaking;
+		const newHeight = this.sneaking ? PLAYER_CONFIG.SNEAK_HEIGHT : PLAYER_CONFIG.HEIGHT;
 
-		const height = this.sneaking ? PLAYER_CONFIG.SNEAK_HEIGHT : PLAYER_CONFIG.HEIGHT;
-		const eyeLevel = this.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL;
-		this.body.ellipsoid.y = height / 2;
-		this.body.ellipsoidOffset.y = height / 2;
+		if (newHeight !== this.currentHeight) {
+			const feetY = this.getFeetY();
+			this.currentHeight = newHeight;
+			this.body.ellipsoid.y = newHeight / 2;
+			this.body.position.y = feetY + newHeight / 2;
+		}
 
 		let forwardInput = 0;
 		let sideInput = 0;
@@ -91,18 +93,17 @@ export class PlayerController {
 				? PLAYER_CONFIG.SPRINT_SPEED
 				: PLAYER_CONFIG.WALK_SPEED;
 
-		this.grounded = this.checkGrounded();
+		this.refreshGroundedState();
 
-		if (this.grounded) {
-			if (this.verticalVelocity < 0) this.verticalVelocity = 0;
-			if (this.input.consume('Space')) {
-				this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
-				this.grounded = false;
-			}
+		if (this.grounded && this.input.consume('Space')) {
+			this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
+			this.grounded = false;
 		}
 
 		if (!this.grounded) {
 			this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
+		} else {
+			this.verticalVelocity = 0;
 		}
 
 		const displacement = direction.scale(speed * dt);
@@ -110,22 +111,42 @@ export class PlayerController {
 
 		const beforeY = this.body.position.y;
 		this.body.moveWithCollisions(displacement);
-		const actualY = this.body.position.y - beforeY;
+		const movedY = this.body.position.y - beforeY;
 
-		if (!this.grounded && displacement.y !== 0 && Math.abs(actualY - displacement.y) > 0.001) {
+		if (!this.grounded && displacement.y < 0 && Math.abs(movedY - displacement.y) > 0.001) {
 			this.verticalVelocity = 0;
-			if (displacement.y < 0) this.grounded = true;
 		}
 
-		this.camera.position.copyFrom(this.body.position);
-		this.camera.position.y += eyeLevel;
+		this.refreshGroundedState(true);
+		this.syncCamera();
 	}
 
-	checkGrounded() {
-		const origin = this.body.position.add(new BABYLON.Vector3(0, GROUND_PROBE_START, 0));
-		const ray = new BABYLON.Ray(origin, BABYLON.Vector3.Down(), GROUND_PROBE_LENGTH);
-		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
-		return Boolean(hit?.hit);
+	refreshGroundedState(snap = false) {
+		const surfaceY = this.world.getSurfaceYAt(this.body.position.x, this.body.position.z, Math.ceil(this.body.position.y + 2));
+		if (surfaceY === null) {
+			this.grounded = false;
+			return;
+		}
+
+		const feetY = this.getFeetY();
+		const distance = feetY - surfaceY;
+		const canStand = this.verticalVelocity <= 0 && distance >= -GROUND_TOLERANCE && distance <= GROUND_TOLERANCE;
+		this.grounded = canStand;
+
+		if (canStand && snap) {
+			this.body.position.y = surfaceY + this.currentHeight / 2;
+			this.verticalVelocity = 0;
+		}
+	}
+
+	getFeetY() {
+		return this.body.position.y - this.currentHeight / 2;
+	}
+
+	syncCamera() {
+		const eyeLevel = this.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL;
+		this.camera.position.copyFrom(this.body.position);
+		this.camera.position.y = this.getFeetY() + eyeLevel;
 	}
 
 	pickTarget() {
