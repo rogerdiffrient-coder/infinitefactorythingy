@@ -1,10 +1,10 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=lighting-rework-12';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=geometry-lighting-14';
 import { InputState } from './input/input.js';
-import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=terrain-restore-9';
-import { VoxelWorld } from './world/world.js?v=normals-13';
+import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=geometry-lighting-14';
+import { VoxelWorld } from './world/world.js?v=geometry-lighting-14';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=lighting-rework-12';
+import { DayNightCycle } from './world/dayNightCycle.js?v=geometry-lighting-14';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
@@ -97,6 +97,7 @@ function clearExistingWorld() {
 	health = null;
 	blockInteraction = null;
 	healthBar.textContent = '';
+	dayNight.refreshShadowCasters();
 }
 
 function lockPointer() {
@@ -114,6 +115,7 @@ function startWorld(record) {
 		onBlockEdit: blocks => worldManager.saveBlocks(activeWorldRecord.id, blocks)
 	});
 	world.createStarterWorld();
+	dayNight.refreshShadowCasters();
 
 	player = new PlayerController(scene, canvas, input, world);
 	player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
