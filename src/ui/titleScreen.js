@@ -1,4 +1,4 @@
-import { randomSeed } from '../world/worldManager.js';
+import { randomSeed } from '../world/worldManager.js?v=bug-sweep-15';
 
 function formatTime(timestamp) {
 	if (!timestamp) return 'Never played';
