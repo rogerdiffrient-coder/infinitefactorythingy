@@ -2,11 +2,23 @@ import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js';
 import { InputState } from './input/input.js';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js';
 import { VoxelWorld } from './world/world.js';
+import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
+import { TitleScreen } from './ui/titleScreen.js';
 
 const canvas = document.querySelector('#renderCanvas');
+const titleRoot = document.querySelector('#titleScreen');
+const worldList = document.querySelector('#worldList');
+const emptyWorlds = document.querySelector('#emptyWorlds');
+const newWorldButton = document.querySelector('#newWorldButton');
+const createWorldPanel = document.querySelector('#createWorldPanel');
+const worldNameInput = document.querySelector('#worldNameInput');
+const seedInput = document.querySelector('#seedInput');
+const randomSeedButton = document.querySelector('#randomSeedButton');
+const confirmCreateWorld = document.querySelector('#confirmCreateWorld');
+const cancelCreateWorld = document.querySelector('#cancelCreateWorld');
 const boot = document.querySelector('#boot');
 const bootStatus = document.querySelector('#bootStatus');
 const playButton = document.querySelector('#playButton');
@@ -20,10 +32,7 @@ const devLeft = document.querySelector('#devLeft');
 const debug = document.querySelector('#debug');
 const target = document.querySelector('#target');
 
-if (!window.BABYLON) {
-	bootStatus.textContent = 'Babylon.js failed to load.';
-	throw new Error('Babylon.js is unavailable.');
-}
+if (!window.BABYLON) throw new Error('Babylon.js is unavailable.');
 
 const engine = new BABYLON.Engine(canvas, true, {
 	preserveDrawingBuffer: false,
@@ -50,17 +59,15 @@ sunLight.intensity = 0.52;
 sunLight.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
 
 const input = new InputState();
-const world = new VoxelWorld(scene);
-bootStatus.textContent = 'Generating 16×16×16 voxel chunks…';
-world.createStarterWorld();
+const worldManager = new WorldManager();
 
-const player = new PlayerController(scene, canvas, input, world);
-player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
-player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
-player.spawnOnSurface(0.5, 0.5);
-
-const health = new HealthSystem(player, healthBar, damageFlash);
-const blockInteraction = new BlockInteraction(canvas, player, world, hotbar, selectedBlockName);
+let activeWorldRecord = null;
+let world = null;
+let player = null;
+let health = null;
+let blockInteraction = null;
+let devOverlayVisible = false;
+let debugTimer = 0;
 
 const suffocationShell = BABYLON.MeshBuilder.CreateBox('suffocation-shell', {
 	size: 0.998,
@@ -70,11 +77,66 @@ suffocationShell.isVisible = false;
 suffocationShell.isPickable = false;
 suffocationShell.checkCollisions = false;
 
-const stats = world.getChunkStats();
-bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
+function clearExistingWorld() {
+	for (const mesh of [...scene.meshes]) {
+		if (mesh.metadata?.isVoxelChunk) mesh.dispose(false, false);
+	}
+	player?.body?.dispose?.();
+	player?.camera?.dispose?.();
+	world = null;
+	player = null;
+	health = null;
+	blockInteraction = null;
+	healthBar.textContent = '';
+}
 
-let devOverlayVisible = false;
-let suffocatingLastFrame = false;
+function lockPointer() {
+	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
+}
+
+function startWorld(record) {
+	clearExistingWorld();
+	activeWorldRecord = worldManager.get(record.id) ?? record;
+	worldManager.touch(activeWorldRecord.id);
+
+	world = new VoxelWorld(scene, {
+		seed: activeWorldRecord.seed,
+		savedBlocks: activeWorldRecord.blocks,
+		onBlockEdit: blocks => worldManager.saveBlocks(activeWorldRecord.id, blocks)
+	});
+	world.createStarterWorld();
+
+	player = new PlayerController(scene, canvas, input, world);
+	player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
+	player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
+	player.spawnOnSurface(0.5, 0.5);
+
+	health = new HealthSystem(player, healthBar, damageFlash);
+	blockInteraction = new BlockInteraction(canvas, player, world, hotbar, selectedBlockName);
+
+	titleScreen.hide();
+	boot.classList.add('hidden');
+	hud.classList.remove('hidden');
+	const stats = world.getChunkStats();
+	bootStatus.textContent = `${activeWorldRecord.name} · seed ${activeWorldRecord.seed} · ${stats.faces.toLocaleString()} faces`;
+	playButton.textContent = 'RETURN TO WORLD';
+	lockPointer();
+}
+
+const titleScreen = new TitleScreen(worldManager, {
+	root: titleRoot,
+	worldList,
+	emptyState: emptyWorlds,
+	newWorldButton,
+	createPanel: createWorldPanel,
+	worldNameInput,
+	seedInput,
+	seedRandomButton: randomSeedButton,
+	createButton: confirmCreateWorld,
+	cancelCreateButton: cancelCreateWorld
+}, {
+	onPlay: startWorld
+});
 
 function setDevOverlayVisible(visible) {
 	devOverlayVisible = visible;
@@ -95,32 +157,29 @@ function handleDevToggle(event) {
 
 window.addEventListener('keydown', handleDevToggle, true);
 
-function lockPointer() {
-	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
-}
-
 playButton.addEventListener('click', () => {
+	if (!player) return;
 	boot.classList.add('hidden');
-	hud.classList.remove('hidden');
 	lockPointer();
 });
 
 canvas.addEventListener('click', () => {
-	if (boot.classList.contains('hidden')) lockPointer();
+	if (player && boot.classList.contains('hidden') && titleRoot.classList.contains('hidden')) lockPointer();
 });
 
 document.addEventListener('pointerlockchange', () => {
-	if (document.pointerLockElement === canvas) return;
-	if (!boot.classList.contains('hidden')) return;
+	if (document.pointerLockElement === canvas) {
+		boot.classList.add('hidden');
+		return;
+	}
+	if (!player || !titleRoot.classList.contains('hidden')) return;
 	boot.classList.remove('hidden');
-	bootStatus.textContent = 'Paused · click ENTER WORLD to recapture the mouse';
+	bootStatus.textContent = `${activeWorldRecord?.name ?? 'World'} · seed ${activeWorldRecord?.seed ?? 0}`;
 	playButton.textContent = 'RETURN TO WORLD';
 });
 
-let lastTime = performance.now();
-let debugTimer = 0;
-
 function updateTarget() {
+	if (!player || !world) return;
 	const hit = player.pickTarget();
 	if (!hit?.hit || !hit.pickedPoint || !hit.getNormal) {
 		target.textContent = 'AIR';
@@ -138,6 +197,7 @@ function updateTarget() {
 }
 
 function updateSuffocationVisual() {
+	if (!player) return;
 	const block = player.getSuffocationBlock();
 	const suffocating = block !== null;
 	suffocationShade.classList.toggle('active', suffocating);
@@ -155,15 +215,10 @@ function updateSuffocationVisual() {
 		sunLight.intensity = 0.52;
 		scene.ambientColor.set(0.35, 0.4, 0.46);
 	}
-
-	if (suffocating !== suffocatingLastFrame) {
-		suffocatingLastFrame = suffocating;
-	}
 }
 
 function updateDebug(dt) {
-	if (!devOverlayVisible) return;
-
+	if (!devOverlayVisible || !player || !world || !health || !blockInteraction) return;
 	debugTimer += dt;
 	if (debugTimer < 0.12) return;
 	debugTimer = 0;
@@ -173,6 +228,8 @@ function updateDebug(dt) {
 	const selected = getBlockDefinition(blockInteraction.getSelectedBlockId());
 	debug.textContent = [
 		`${engine.getFps().toFixed(0)} FPS`,
+		`WORLD ${activeWorldRecord?.name ?? 'Unknown'}`,
+		`SEED ${world.seed}`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
@@ -183,12 +240,13 @@ function updateDebug(dt) {
 	].join('\n');
 }
 
+let lastTime = performance.now();
 engine.runRenderLoop(() => {
 	const now = performance.now();
 	const dt = Math.min((now - lastTime) / 1000, 0.05);
 	lastTime = now;
 
-	if (document.pointerLockElement === canvas) {
+	if (player && document.pointerLockElement === canvas) {
 		player.update(dt);
 		health.update(dt);
 		updateSuffocationVisual();
@@ -202,10 +260,8 @@ engine.runRenderLoop(() => {
 
 window.addEventListener('resize', () => engine.resize());
 
-console.info('[IFT] 3D voxel prototype loaded', {
+console.info('[IFT] world manager loaded', {
 	blockSize: WORLD_CONFIG.BLOCK_SIZE,
 	chunkSize: [WORLD_CONFIG.CHUNK_SIZE_X, WORLD_CONFIG.CHUNK_SIZE_Y, WORLD_CONFIG.CHUNK_SIZE_Z],
-	walkSpeed: PLAYER_CONFIG.WALK_SPEED,
-	sprintSpeed: PLAYER_CONFIG.SPRINT_SPEED,
-	reach: PLAYER_CONFIG.MAX_REACH
+	worldCount: worldManager.list().length
 });
