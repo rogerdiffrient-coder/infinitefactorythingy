@@ -1,4 +1,4 @@
-import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js';
+import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=geometry-lighting-14';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
@@ -32,7 +32,7 @@ export class PlayerController {
 		this.body.ellipsoidOffset = BABYLON.Vector3.Zero();
 
 		this.camera = new BABYLON.UniversalCamera('player-camera', BABYLON.Vector3.Zero(), scene);
-		this.camera.minZ = 0.03;
+		this.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
 		this.camera.fov = RENDER_CONFIG.CAMERA_FOV;
 		this.camera.inertia = 0.18;
 		this.camera.angularSensibility = 2100;
@@ -65,7 +65,9 @@ export class PlayerController {
 	}
 
 	update(dt) {
-		this.sneaking = this.input.down('ShiftLeft', 'ShiftRight');
+		const sneakRequested = this.input.down('ShiftLeft', 'ShiftRight');
+		const canStandUp = this.currentHeight >= PLAYER_CONFIG.HEIGHT || this.canOccupyHeight(PLAYER_CONFIG.HEIGHT);
+		this.sneaking = sneakRequested || !canStandUp;
 		const newHeight = this.sneaking ? PLAYER_CONFIG.SNEAK_HEIGHT : PLAYER_CONFIG.HEIGHT;
 
 		if (newHeight !== this.currentHeight) {
@@ -140,9 +142,17 @@ export class PlayerController {
 	}
 
 	collidesWithWorld(centerX, centerZ) {
+		return this.collidesVolume(centerX, centerZ, this.currentHeight);
+	}
+
+	canOccupyHeight(height) {
+		return !this.collidesVolume(this.body.position.x, this.body.position.z, height);
+	}
+
+	collidesVolume(centerX, centerZ, height) {
 		const half = PLAYER_CONFIG.WIDTH / 2;
 		const feetY = this.getFeetY();
-		const headY = feetY + this.currentHeight;
+		const headY = feetY + height;
 		const minX = centerX - half + COLLISION_SKIN;
 		const maxX = centerX + half - COLLISION_SKIN;
 		const minY = feetY + COLLISION_SKIN;
