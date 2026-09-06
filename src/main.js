@@ -1,13 +1,13 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=geometry-lighting-14';
-import { InputState } from './input/input.js';
-import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=geometry-lighting-14';
-import { VoxelWorld } from './world/world.js?v=geometry-lighting-14';
-import { WorldManager } from './world/worldManager.js';
-import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=geometry-lighting-14';
-import { PlayerController } from './player/playerController.js';
-import { HealthSystem } from './player/healthSystem.js';
-import { TitleScreen } from './ui/titleScreen.js';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=bug-sweep-15';
+import { InputState } from './input/input.js?v=bug-sweep-15';
+import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=bug-sweep-15';
+import { VoxelWorld } from './world/world.js?v=bug-sweep-15';
+import { WorldManager } from './world/worldManager.js?v=bug-sweep-15';
+import { BlockInteraction } from './world/blockInteraction.js?v=bug-sweep-15';
+import { DayNightCycle } from './world/dayNightCycle.js?v=bug-sweep-15';
+import { PlayerController } from './player/playerController.js?v=bug-sweep-15';
+import { HealthSystem } from './player/healthSystem.js?v=bug-sweep-15';
+import { TitleScreen } from './ui/titleScreen.js?v=bug-sweep-15';
 
 const canvas = document.querySelector('#renderCanvas');
 const titleRoot = document.querySelector('#titleScreen');
@@ -84,10 +84,7 @@ function resetWorldVisualState() {
 
 function clearExistingWorld() {
 	blockInteraction?.dispose?.();
-	for (const mesh of [...scene.meshes]) {
-		if (!mesh.metadata?.isVoxelChunk) continue;
-		mesh.dispose(false, false);
-	}
+	world?.dispose?.();
 	player?.body?.dispose?.();
 	player?.camera?.dispose?.();
 	resetWorldVisualState();
@@ -115,7 +112,6 @@ function startWorld(record) {
 		onBlockEdit: blocks => worldManager.saveBlocks(activeWorldRecord.id, blocks)
 	});
 	world.createStarterWorld();
-	dayNight.refreshShadowCasters();
 
 	player = new PlayerController(scene, canvas, input, world);
 	player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
@@ -283,7 +279,7 @@ engine.runRenderLoop(() => {
 
 window.addEventListener('resize', () => engine.resize());
 
-console.info('[IFT] world manager loaded', {
+console.info('[IFT] bug sweep build loaded', {
 	blockSize: WORLD_CONFIG.BLOCK_SIZE,
 	chunkSize: [WORLD_CONFIG.CHUNK_SIZE_X, WORLD_CONFIG.CHUNK_SIZE_Y, WORLD_CONFIG.CHUNK_SIZE_Z],
 	worldCount: worldManager.list().length
