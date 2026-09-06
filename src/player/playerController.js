@@ -1,5 +1,9 @@
 import { PLAYER_CONFIG } from '../config.js';
 
+const GROUND_PROBE_START = 0.12;
+const GROUND_PROBE_LENGTH = 0.22;
+const SPAWN_CLEARANCE = 0.03;
+
 export class PlayerController {
 	constructor(scene, canvas, input) {
 		this.scene = scene;
@@ -32,8 +36,26 @@ export class PlayerController {
 	}
 
 	spawn(x, y, z) {
+		this.verticalVelocity = 0;
+		this.grounded = false;
 		this.body.position.set(x, y, z);
 		this.camera.position.set(x, y + PLAYER_CONFIG.EYE_LEVEL, z);
+	}
+
+	spawnOnSurface(x, z, castFromY = 64) {
+		const ray = new BABYLON.Ray(
+			new BABYLON.Vector3(x, castFromY, z),
+			BABYLON.Vector3.Down(),
+			castFromY + 128
+		);
+		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
+		if (!hit?.hit || !hit.pickedPoint) {
+			this.spawn(x, castFromY, z);
+			return false;
+		}
+
+		this.spawn(x, hit.pickedPoint.y + SPAWN_CLEARANCE, z);
+		return true;
 	}
 
 	update(dt) {
@@ -70,18 +92,29 @@ export class PlayerController {
 				: PLAYER_CONFIG.WALK_SPEED;
 
 		this.grounded = this.checkGrounded();
-		if (this.grounded && this.verticalVelocity < 0) this.verticalVelocity = 0;
-		if (this.grounded && this.input.consume('Space')) this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
 
-		this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
+		if (this.grounded) {
+			if (this.verticalVelocity < 0) this.verticalVelocity = 0;
+			if (this.input.consume('Space')) {
+				this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
+				this.grounded = false;
+			}
+		}
+
+		if (!this.grounded) {
+			this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
+		}
+
 		const displacement = direction.scale(speed * dt);
-		displacement.y = this.verticalVelocity * dt;
+		displacement.y = this.grounded ? 0 : this.verticalVelocity * dt;
 
 		const beforeY = this.body.position.y;
 		this.body.moveWithCollisions(displacement);
 		const actualY = this.body.position.y - beforeY;
-		if (Math.abs(actualY - displacement.y) > 0.001 && displacement.y !== 0) {
+
+		if (!this.grounded && displacement.y !== 0 && Math.abs(actualY - displacement.y) > 0.001) {
 			this.verticalVelocity = 0;
+			if (displacement.y < 0) this.grounded = true;
 		}
 
 		this.camera.position.copyFrom(this.body.position);
@@ -89,8 +122,8 @@ export class PlayerController {
 	}
 
 	checkGrounded() {
-		const origin = this.body.position.add(new BABYLON.Vector3(0, 0.08, 0));
-		const ray = new BABYLON.Ray(origin, BABYLON.Vector3.Down(), 0.14);
+		const origin = this.body.position.add(new BABYLON.Vector3(0, GROUND_PROBE_START, 0));
+		const ray = new BABYLON.Ray(origin, BABYLON.Vector3.Down(), GROUND_PROBE_LENGTH);
 		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
 		return Boolean(hit?.hit);
 	}
