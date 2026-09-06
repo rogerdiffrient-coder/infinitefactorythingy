@@ -49,6 +49,10 @@ scene.fogDensity = RENDER_CONFIG.FOG_DENSITY;
 scene.fogColor = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 scene.ambientColor = new BABYLON.Color3(0.35, 0.4, 0.46);
 
+const standbyCamera = new BABYLON.FreeCamera('standby-camera', new BABYLON.Vector3(0, 14, -18), scene);
+standbyCamera.setTarget(new BABYLON.Vector3(0, 4, 0));
+scene.activeCamera = standbyCamera;
+
 const hemisphericLight = new BABYLON.HemisphericLight('sky-light', new BABYLON.Vector3(0.25, 1, 0.15), scene);
 hemisphericLight.intensity = 0.78;
 hemisphericLight.diffuse = new BABYLON.Color3(0.72, 0.84, 1);
@@ -83,6 +87,7 @@ function clearExistingWorld() {
 	}
 	player?.body?.dispose?.();
 	player?.camera?.dispose?.();
+	scene.activeCamera = standbyCamera;
 	world = null;
 	player = null;
 	health = null;
