@@ -1,10 +1,14 @@
 import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=bug-sweep-15';
+import { PlayerModel } from './playerModel.js?v=player-model-17';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
 const EDGE_INSET = 0.05;
 const CEILING_CLEARANCE = 0.002;
 const COLLISION_SKIN = 0.001;
+const THIRD_PERSON_DISTANCE = 3.2;
+const THIRD_PERSON_HEIGHT = 0.35;
+const THIRD_PERSON_CAMERA_SKIN = 0.18;
 
 export class PlayerController {
 	constructor(scene, canvas, input, world) {
@@ -19,6 +23,8 @@ export class PlayerController {
 		this.currentHeight = PLAYER_CONFIG.HEIGHT;
 		this.lastForwardPressAt = -Infinity;
 		this.doubleTapSprinting = false;
+		this.moveAmount = 0;
+		this.thirdPerson = false;
 
 		this.body = BABYLON.MeshBuilder.CreateBox('player-collider', { size: 0.1 }, scene);
 		this.body.isVisible = false;
@@ -40,6 +46,17 @@ export class PlayerController {
 		this.camera.inputs.removeByType('FreeCameraKeyboardMoveInput');
 		this.camera.inputs.removeByType('FreeCameraTouchInput');
 		this.scene.activeCamera = this.camera;
+
+		this.model = new PlayerModel(scene);
+		this.model.setFirstPerson(true);
+		this.model.applyCameraLayer(this.camera);
+
+		this.onPerspectiveKey = event => {
+			if (event.code !== 'F5') return;
+			event.preventDefault();
+			this.togglePerspective();
+		};
+		window.addEventListener('keydown', this.onPerspectiveKey, true);
 	}
 
 	spawnAtFeet(x, feetY, z) {
@@ -51,6 +68,7 @@ export class PlayerController {
 		this.body.ellipsoid.y = this.currentHeight / 2;
 		this.body.position.set(x, feetY + this.currentHeight / 2, z);
 		this.syncCamera();
+		this.updateModel(0);
 	}
 
 	spawnOnSurface(x, z) {
@@ -96,6 +114,7 @@ export class PlayerController {
 			forwardInput /= inputLength;
 			sideInput /= inputLength;
 		}
+		this.moveAmount = Math.min(1, inputLength);
 
 		const sprintRequested = this.input.controlDown() || this.doubleTapSprinting;
 		this.sprinting = !this.sneaking && inputLength > 0 && sprintRequested;
@@ -128,6 +147,37 @@ export class PlayerController {
 		this.applyVerticalMotion(dt);
 		this.refreshGroundedState(true);
 		this.syncCamera();
+		this.updateModel(dt);
+	}
+
+	updateModel(dt) {
+		this.model.update(dt, {
+			x: this.body.position.x,
+			feetY: this.getFeetY(),
+			z: this.body.position.z,
+			yaw: this.camera.rotation.y,
+			pitch: this.camera.rotation.x,
+			moveAmount: this.moveAmount,
+			sprinting: this.sprinting,
+			sneaking: this.sneaking,
+			grounded: this.grounded,
+			verticalVelocity: this.verticalVelocity
+		});
+	}
+
+	togglePerspective() {
+		this.thirdPerson = !this.thirdPerson;
+		this.model.setFirstPerson(!this.thirdPerson);
+		this.model.applyCameraLayer(this.camera);
+		this.syncCamera();
+	}
+
+	triggerBreakAnimation() {
+		this.model.triggerBreak();
+	}
+
+	triggerPlaceAnimation() {
+		this.model.triggerPlace();
 	}
 
 	moveHorizontalWithVoxelCollision(deltaX, deltaZ) {
@@ -326,8 +376,30 @@ export class PlayerController {
 
 	syncCamera() {
 		const eyeLevel = this.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL;
-		this.camera.position.copyFrom(this.body.position);
-		this.camera.position.y = this.getFeetY() + eyeLevel;
+		const eye = new BABYLON.Vector3(this.body.position.x, this.getFeetY() + eyeLevel, this.body.position.z);
+
+		if (!this.thirdPerson) {
+			this.camera.position.copyFrom(eye);
+			return;
+		}
+
+		const forward = this.camera.getDirection(BABYLON.Axis.Z).normalize();
+		const desired = eye.subtract(forward.scale(THIRD_PERSON_DISTANCE)).add(new BABYLON.Vector3(0, THIRD_PERSON_HEIGHT, 0));
+		const offset = desired.subtract(eye);
+		const distance = offset.length();
+		if (distance <= 0.001) {
+			this.camera.position.copyFrom(eye);
+			return;
+		}
+
+		const ray = new BABYLON.Ray(eye, offset.normalize(), distance);
+		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
+		if (hit?.hit && hit.pickedPoint) {
+			const cameraDirection = eye.subtract(hit.pickedPoint).normalize();
+			this.camera.position.copyFrom(hit.pickedPoint.add(cameraDirection.scale(THIRD_PERSON_CAMERA_SKIN)));
+		} else {
+			this.camera.position.copyFrom(desired);
+		}
 	}
 
 	pickTarget() {
@@ -337,5 +409,12 @@ export class PlayerController {
 
 	getPosition() {
 		return this.body.position;
+	}
+
+	dispose() {
+		window.removeEventListener('keydown', this.onPerspectiveKey, true);
+		this.model?.dispose?.();
+		this.camera?.dispose?.();
+		this.body?.dispose?.();
 	}
 }
