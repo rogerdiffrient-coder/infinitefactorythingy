@@ -6,6 +6,7 @@ import { TerrainGenerator } from './terrainGenerator.js?v=bug-sweep-15';
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
 const SZ = WORLD_CONFIG.CHUNK_SIZE_Z;
+const SAVE_DEBOUNCE_MS = 120;
 
 function floorDiv(value, size) {
 	return Math.floor(value / size);
@@ -24,6 +25,8 @@ export class VoxelWorld {
 		this.onBlockEdit = options.onBlockEdit ?? null;
 		this.generating = false;
 		this.terrain = new TerrainGenerator(this.seed);
+		this.saveTimer = null;
+		this.saveDirty = false;
 	}
 
 	chunkKey(cx, cy, cz) {
@@ -71,6 +74,35 @@ export class VoxelWorld {
 		return Boolean(definition?.solid);
 	}
 
+	getGeneratedBlock(x, y, z) {
+		const radius = WORLD_CONFIG.STARTER_CHUNK_RADIUS;
+		const minX = -radius * SX;
+		const maxX = (radius + 1) * SX;
+		const minZ = -radius * SZ;
+		const maxZ = (radius + 1) * SZ;
+		if (x < minX || x >= maxX || z < minZ || z >= maxZ || y < 0) return BLOCKS.AIR;
+
+		const height = this.terrain.heightAt(x, z);
+		if (y >= height) return BLOCKS.AIR;
+		return this.terrain.blockAtDepth(height - 1 - y);
+	}
+
+	scheduleSave() {
+		this.saveDirty = true;
+		if (this.saveTimer !== null) return;
+		this.saveTimer = setTimeout(() => this.flushSave(), SAVE_DEBOUNCE_MS);
+	}
+
+	flushSave() {
+		if (this.saveTimer !== null) {
+			clearTimeout(this.saveTimer);
+			this.saveTimer = null;
+		}
+		if (!this.saveDirty) return;
+		this.saveDirty = false;
+		this.onBlockEdit?.(this.savedBlocks);
+	}
+
 	setBlock(x, y, z, id) {
 		const { cx, cy, cz, lx, ly, lz } = this.worldToChunk(x, y, z);
 		const chunk = id === BLOCKS.AIR ? this.getChunk(cx, cy, cz) : this.ensureChunk(cx, cy, cz);
@@ -79,8 +111,10 @@ export class VoxelWorld {
 		chunk.setLocal(lx, ly, lz, id);
 
 		if (!this.generating) {
-			this.savedBlocks[this.blockKey(x, y, z)] = id;
-			this.onBlockEdit?.(this.savedBlocks);
+			const key = this.blockKey(x, y, z);
+			if (id === this.getGeneratedBlock(x, y, z)) delete this.savedBlocks[key];
+			else this.savedBlocks[key] = id;
+			this.scheduleSave();
 		}
 		return true;
 	}
@@ -177,6 +211,7 @@ export class VoxelWorld {
 	}
 
 	dispose() {
+		this.flushSave();
 		for (const chunk of this.chunks.values()) chunk.disposeMesh();
 		this.chunks.clear();
 		this.scene.metadata?.iftRefreshShadowCasters?.();
