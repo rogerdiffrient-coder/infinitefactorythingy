@@ -52,7 +52,10 @@ export function getBlockMaterial(scene, id) {
 	material.specularColor = BABYLON.Color3.Black();
 	material.ambientColor = BABYLON.Color3.Black();
 	material.emissiveColor = BABYLON.Color3.Black();
-	material.backFaceCulling = true;
+	// Keep both sides visible until the chunk mesh winding is rebuilt to match
+	// Babylon's front-face convention. Enabling culling with the current mesh
+	// removes valid terrain faces.
+	material.backFaceCulling = false;
 	material.twoSidedLighting = false;
 	material.useVertexColors = false;
 
