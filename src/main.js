@@ -1,10 +1,10 @@
 import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js';
 import { InputState } from './input/input.js';
-import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js';
-import { VoxelWorld } from './world/world.js';
+import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=real-lighting-1';
+import { VoxelWorld } from './world/world.js?v=real-lighting-1';
 import { WorldManager } from './world/worldManager.js';
-import { BlockInteraction } from './world/blockInteraction.js';
-import { DayNightCycle } from './world/dayNightCycle.js';
+import { BlockInteraction } from './world/blockInteraction.js?v=hold-actions-1';
+import { DayNightCycle } from './world/dayNightCycle.js?v=real-lighting-1';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
@@ -49,7 +49,7 @@ scene.clearColor = new BABYLON.Color4(...RENDER_CONFIG.CLEAR_COLOR);
 scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
 scene.fogDensity = RENDER_CONFIG.FOG_DENSITY;
 scene.fogColor = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
-scene.ambientColor = new BABYLON.Color3(0.2, 0.24, 0.3);
+scene.ambientColor = BABYLON.Color3.Black();
 
 const standbyCamera = new BABYLON.FreeCamera('standby-camera', new BABYLON.Vector3(0, 14, -18), scene);
 standbyCamera.setTarget(new BABYLON.Vector3(0, 4, 0));
@@ -84,7 +84,9 @@ function resetWorldVisualState() {
 function clearExistingWorld() {
 	blockInteraction?.dispose?.();
 	for (const mesh of [...scene.meshes]) {
-		if (mesh.metadata?.isVoxelChunk) mesh.dispose(false, false);
+		if (!mesh.metadata?.isVoxelChunk) continue;
+		dayNight.shadowGenerator?.removeShadowCaster?.(mesh, false);
+		mesh.dispose(false, false);
 	}
 	player?.body?.dispose?.();
 	player?.camera?.dispose?.();
@@ -264,6 +266,7 @@ engine.runRenderLoop(() => {
 
 	if (player && document.pointerLockElement === canvas) {
 		player.update(dt);
+		blockInteraction?.update(dt);
 		health.update(dt);
 		updateSuffocationVisual();
 		dayNight.update(dt, player.getPosition());
