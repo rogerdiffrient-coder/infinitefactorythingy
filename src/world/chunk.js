@@ -1,5 +1,5 @@
-import { WORLD_CONFIG } from '../config.js?v=terrain-restore-9';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=terrain-restore-9';
+import { WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=geometry-lighting-14';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
@@ -102,7 +102,18 @@ export class Chunk {
 							group.normals.push(dx, dy, dz);
 						}
 						group.uvs.push(...UV_ROTATIONS[hashRotation(this.world.seed, worldX, worldY, worldZ, faceIndex)]);
-						group.indices.push(group.vertexBase, group.vertexBase + 1, group.vertexBase + 2, group.vertexBase, group.vertexBase + 2, group.vertexBase + 3);
+
+						// Babylon's default front-face convention is opposite the original
+						// prototype winding. Reverse each triangle so the visible outside of
+						// every voxel is also the front side used by culling and shadows.
+						group.indices.push(
+							group.vertexBase,
+							group.vertexBase + 2,
+							group.vertexBase + 1,
+							group.vertexBase,
+							group.vertexBase + 3,
+							group.vertexBase + 2
+						);
 						group.vertexBase += 4;
 						group.faces++;
 						totalFaces++;
@@ -162,5 +173,9 @@ export class Chunk {
 		mesh.freezeWorldMatrix();
 		mesh.freezeNormals();
 		this.mesh = mesh;
+
+		// Keep the finite world's caster list stable. Rebuilding one chunk replaces
+		// its mesh, so tell the daylight system to refresh the complete list once.
+		this.scene.metadata?.iftRefreshShadowCasters?.();
 	}
 }
