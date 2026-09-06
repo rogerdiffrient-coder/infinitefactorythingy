@@ -143,6 +143,7 @@ export class BlockInteraction {
 		if (key !== this.breakCellKey) {
 			this.breakCellKey = key;
 			this.breakProgress = 0;
+			this.player.triggerBreakAnimation?.();
 		}
 
 		this.breakProgress += dt;
@@ -200,7 +201,9 @@ export class BlockInteraction {
 	placeCell(x, y, z) {
 		if (this.world.getBlock(x, y, z) !== BLOCKS.AIR) return false;
 		if (this.player.intersectsBlock(x, y, z)) return false;
-		return this.world.setBlockAndRebuild(x, y, z, SELECTABLE_BLOCKS[this.selectedIndex]);
+		const placed = this.world.setBlockAndRebuild(x, y, z, SELECTABLE_BLOCKS[this.selectedIndex]);
+		if (placed) this.player.triggerPlaceAnimation?.();
+		return placed;
 	}
 
 	resetBreakProgress() {
