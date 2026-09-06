@@ -73,22 +73,18 @@ def make_head():
 	shirt = (45, 140, 190, 255)
 	for i, (tx, ty) in enumerate(((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1))):
 		fill_tile(p, tx, ty, skin, 10 + i)
-	# front
 	rect(p, 0, 0, 0, 0, 16, 4, hair)
 	rect(p, 0, 0, 0, 4, 2, 4, hair)
 	rect(p, 0, 0, 14, 4, 2, 4, hair)
 	rect(p, 0, 0, 4, 7, 2, 2, eye)
 	rect(p, 0, 0, 10, 7, 2, 2, eye)
 	rect(p, 0, 0, 6, 12, 4, 1, shade(skin, -35))
-	# back
 	rect(p, 1, 0, 0, 0, 16, 10, hair)
 	rect(p, 1, 0, 2, 10, 12, 3, dark_hair)
-	# right/left hair edges
 	rect(p, 2, 0, 0, 0, 16, 5, hair)
 	rect(p, 0, 1, 0, 0, 16, 5, hair)
 	rect(p, 2, 0, 13, 5, 3, 5, hair)
 	rect(p, 0, 1, 0, 5, 3, 5, hair)
-	# top / bottom
 	rect(p, 1, 1, 0, 0, 16, 16, hair)
 	rect(p, 2, 1, 4, 12, 8, 4, shirt)
 	return p
@@ -101,16 +97,13 @@ def make_torso():
 	shirt_light = (61, 158, 204, 255)
 	for i, (tx, ty) in enumerate(((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1))):
 		fill_tile(p, tx, ty, shirt, 30 + i)
-	# front factory-ish stripe / badge
 	rect(p, 0, 0, 0, 0, 16, 3, shirt_dark)
 	rect(p, 0, 0, 2, 5, 12, 2, shirt_light)
 	rect(p, 0, 0, 6, 9, 4, 4, (240, 177, 56, 255))
 	rect(p, 0, 0, 7, 10, 2, 2, (255, 224, 117, 255))
-	# back
 	rect(p, 1, 0, 0, 0, 16, 3, shirt_dark)
 	rect(p, 1, 0, 4, 6, 8, 5, shirt_dark)
 	rect(p, 1, 0, 6, 7, 4, 3, shirt_light)
-	# sides/top/bottom
 	rect(p, 2, 0, 0, 0, 3, 16, shirt_dark)
 	rect(p, 0, 1, 13, 0, 3, 16, shirt_dark)
 	rect(p, 1, 1, 0, 0, 16, 16, shirt_light)
@@ -146,6 +139,16 @@ def make_leg():
 	return p
 
 
+def replace_in_file(path, old, new):
+	with open(path, 'r', encoding='utf-8') as f:
+		content = f.read()
+	if old not in content:
+		return
+	with open(path, 'w', encoding='utf-8') as f:
+		f.write(content.replace(old, new))
+	print('patched', path)
+
+
 os.makedirs(OUT, exist_ok=True)
 for name, maker in (
 	('head.png', make_head),
@@ -155,3 +158,8 @@ for name, maker in (
 ):
 	write_png(os.path.join(OUT, name), maker())
 	print('wrote', os.path.join(OUT, name))
+
+replace_in_file('src/player/playerController.js', "./playerModel.js?v=player-model-17", "./playerModel.js?v=player-model-18")
+replace_in_file('src/main.js', "./world/blockInteraction.js?v=player-model-17", "./world/blockInteraction.js?v=player-model-18")
+replace_in_file('src/main.js', "./player/playerController.js?v=player-model-17", "./player/playerController.js?v=player-model-18")
+replace_in_file('index.html', "src/main.js?v=player-model-17", "src/main.js?v=player-model-18")
