@@ -1,8 +1,8 @@
-import { HEALTH_CONFIG } from '../config.js';
+import { HEALTH_CONFIG } from '../config.js?v=bug-sweep-15';
 
-const HEART_FULL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAhElEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWcF1fim4Bk0Ghv8whfjkUBSI+LpAbNi8h6DTNT8+Y3jz5gUjE7oEMZqRAYoBpGqGG/DmzQtGzY/PiNYEcz6GC8gBcAOIdQWy7RguIGQIumYMA/AZgk0zVgOwGYJLM0EgIiLxHzkJD1MAAMJQVSWuMrWxAAAAAElFTkSuQmCC';
-const HEART_HALF = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAlElEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWcF1fim4Bk0Ghv8whSIiEv/VNHUQpl1HyDEiaxbxdYHYsHkPXK2/lBBWp9+6foXhzZsXjEzoEsiaiQEoBpCqGW7AmzcvGDU/PiNaE8z5GC4gB8ANINYVyLZjuICQIeiaMQzAZwg2zVgNwGYILs0EgYiIxH/kJDxMAQCwRVjn1WzHpwAAAABJRU5ErkJggg==';
-const HEART_EMPTY = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAcklEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWYGapg5Cx3WG/zCF+OSwKyAC3Lp+heHNmxeMTCTpwgKoY8CbNy8Yb12/QrQmmPOp5wJSXIFsO4YLCBmCrhnDAHyGYNOM1QBshuDSTBCIiEj8R07CwxQAAHEqUvOgBYb1AAAAAElFTkSuQmCC';
+const HEART_FULL = 'Assets/UI/Health/Hearts/heart-full.png';
+const HEART_HALF = 'Assets/UI/Health/Hearts/heart-half.png';
+const HEART_EMPTY = 'Assets/UI/Health/Hearts/heart-empty.png';
 
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
