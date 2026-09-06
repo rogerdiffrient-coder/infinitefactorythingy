@@ -137,28 +137,17 @@ export class PlayerController {
 
 		if (deltaY < 0) {
 			const proposedFeet = oldFeet + deltaY;
-			const surfaceY = this.world.getSurfaceYAt(
-				this.body.position.x,
-				this.body.position.z,
-				Math.ceil(oldFeet + 0.25)
-			);
-
-			if (surfaceY !== null && oldFeet >= surfaceY - GROUND_TOLERANCE && proposedFeet <= surfaceY) {
-				this.body.position.y = surfaceY + this.currentHeight / 2;
+			const landingY = this.findLandingSurface(oldFeet, proposedFeet);
+			if (landingY !== null) {
+				this.body.position.y = landingY + this.currentHeight / 2;
 				this.verticalVelocity = 0;
 				this.grounded = true;
 				return;
 			}
 		} else {
 			const proposedHead = oldHead + deltaY;
-			const ceilingY = this.world.getCeilingBottomYAt(
-				this.body.position.x,
-				this.body.position.z,
-				oldHead,
-				proposedHead
-			);
-
-			if (ceilingY !== null && proposedHead >= ceilingY) {
+			const ceilingY = this.findCeiling(oldHead, proposedHead);
+			if (ceilingY !== null) {
 				this.body.position.y = ceilingY - this.currentHeight / 2 - CEILING_CLEARANCE;
 				this.verticalVelocity = 0;
 				return;
@@ -166,6 +155,48 @@ export class PlayerController {
 		}
 
 		this.body.position.y += deltaY;
+	}
+
+	findLandingSurface(oldFeet, proposedFeet) {
+		const radius = PLAYER_CONFIG.WIDTH / 2 - 0.03;
+		const probes = [
+			[this.body.position.x, this.body.position.z],
+			[this.body.position.x - radius, this.body.position.z - radius],
+			[this.body.position.x + radius, this.body.position.z - radius],
+			[this.body.position.x - radius, this.body.position.z + radius],
+			[this.body.position.x + radius, this.body.position.z + radius]
+		];
+		let best = null;
+
+		for (const [x, z] of probes) {
+			const surfaceY = this.world.getSurfaceYAt(x, z, Math.ceil(oldFeet + 0.25));
+			if (surfaceY === null) continue;
+			if (surfaceY > oldFeet + GROUND_TOLERANCE) continue;
+			if (surfaceY < proposedFeet - GROUND_TOLERANCE) continue;
+			if (best === null || surfaceY > best) best = surfaceY;
+		}
+
+		return best;
+	}
+
+	findCeiling(oldHead, proposedHead) {
+		const radius = PLAYER_CONFIG.WIDTH / 2 - 0.03;
+		const probes = [
+			[this.body.position.x, this.body.position.z],
+			[this.body.position.x - radius, this.body.position.z - radius],
+			[this.body.position.x + radius, this.body.position.z - radius],
+			[this.body.position.x - radius, this.body.position.z + radius],
+			[this.body.position.x + radius, this.body.position.z + radius]
+		];
+		let nearest = null;
+
+		for (const [x, z] of probes) {
+			const ceilingY = this.world.getCeilingBottomYAt(x, z, oldHead, proposedHead);
+			if (ceilingY === null) continue;
+			if (nearest === null || ceilingY < nearest) nearest = ceilingY;
+		}
+
+		return nearest;
 	}
 
 	applySneakEdgeSafety(displacement) {
@@ -203,40 +234,59 @@ export class PlayerController {
 			return;
 		}
 
-		const surfaceY = this.world.getSurfaceYAt(
-			this.body.position.x,
-			this.body.position.z,
-			Math.ceil(this.getFeetY() + 0.25)
-		);
-		if (surfaceY === null) {
+		const feetY = this.getFeetY();
+		const landingY = this.findLandingSurface(feetY + GROUND_TOLERANCE, feetY - GROUND_TOLERANCE);
+		if (landingY === null) {
 			this.grounded = false;
 			return;
 		}
 
-		const feetY = this.getFeetY();
-		const distance = feetY - surfaceY;
+		const distance = feetY - landingY;
 		const canStand = distance >= -GROUND_TOLERANCE && distance <= GROUND_TOLERANCE;
 		this.grounded = canStand;
 
 		if (canStand && snap) {
-			this.body.position.y = surfaceY + this.currentHeight / 2;
+			this.body.position.y = landingY + this.currentHeight / 2;
 			this.verticalVelocity = 0;
 		}
 	}
 
-	isSuffocating() {
+	getSuffocationBlock() {
 		const feetY = this.getFeetY();
-		const headY = feetY + this.currentHeight - 0.05;
+		const eyeLevel = this.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL;
+		const eyeY = feetY + eyeLevel;
 		const radius = PLAYER_CONFIG.WIDTH / 2 - 0.04;
 		const probes = [
-			[this.body.position.x, this.body.position.z],
-			[this.body.position.x - radius, this.body.position.z - radius],
-			[this.body.position.x + radius, this.body.position.z - radius],
-			[this.body.position.x - radius, this.body.position.z + radius],
-			[this.body.position.x + radius, this.body.position.z + radius]
+			[this.body.position.x, eyeY, this.body.position.z],
+			[this.body.position.x - radius, eyeY, this.body.position.z - radius],
+			[this.body.position.x + radius, eyeY, this.body.position.z - radius],
+			[this.body.position.x - radius, eyeY, this.body.position.z + radius],
+			[this.body.position.x + radius, eyeY, this.body.position.z + radius]
 		];
-		const blockY = Math.floor(headY);
-		return probes.some(([x, z]) => this.world.isSolid(Math.floor(x), blockY, Math.floor(z)));
+
+		for (const [x, y, z] of probes) {
+			const bx = Math.floor(x);
+			const by = Math.floor(y);
+			const bz = Math.floor(z);
+			const id = this.world.getBlock(bx, by, bz);
+			if (this.world.isSolid(bx, by, bz)) return { x: bx, y: by, z: bz, id };
+		}
+		return null;
+	}
+
+	isSuffocating() {
+		return this.getSuffocationBlock() !== null;
+	}
+
+	intersectsBlock(x, y, z) {
+		const half = PLAYER_CONFIG.WIDTH / 2;
+		const minX = this.body.position.x - half;
+		const maxX = this.body.position.x + half;
+		const minY = this.getFeetY();
+		const maxY = minY + this.currentHeight;
+		const minZ = this.body.position.z - half;
+		const maxZ = this.body.position.z + half;
+		return maxX > x && minX < x + 1 && maxY > y && minY < y + 1 && maxZ > z && minZ < z + 1;
 	}
 
 	getFeetY() {
