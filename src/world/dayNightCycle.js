@@ -44,28 +44,28 @@ export class DayNightCycle {
 		this.occluded = false;
 
 		this.daySky = new BABYLON.Color3(0.42, 0.72, 0.96);
-		this.twilightSky = new BABYLON.Color3(0.86, 0.42, 0.24);
+		this.twilightSky = new BABYLON.Color3(0.76, 0.46, 0.32);
 		this.nightSky = new BABYLON.Color3(0.018, 0.032, 0.075);
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		this.daySkyLight = new BABYLON.Color3(0.96, 0.98, 1);
-		this.dayGroundLight = new BABYLON.Color3(0.9, 0.94, 0.98);
-		this.twilightSkyLight = new BABYLON.Color3(0.78, 0.66, 0.58);
-		this.twilightGroundLight = new BABYLON.Color3(0.66, 0.58, 0.54);
-		this.nightSkyLight = new BABYLON.Color3(0.26, 0.34, 0.52);
-		this.nightGroundLight = new BABYLON.Color3(0.22, 0.28, 0.4);
+		this.daySkyLight = new BABYLON.Color3(0.94, 0.95, 0.96);
+		this.dayGroundLight = new BABYLON.Color3(0.88, 0.89, 0.9);
+		this.twilightSkyLight = new BABYLON.Color3(0.74, 0.68, 0.64);
+		this.twilightGroundLight = new BABYLON.Color3(0.62, 0.58, 0.56);
+		this.nightSkyLight = new BABYLON.Color3(0.25, 0.3, 0.42);
+		this.nightGroundLight = new BABYLON.Color3(0.2, 0.23, 0.31);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
 		this.ambientLight.groundColor.copyFrom(this.dayGroundLight);
 
 		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
-		this.sunLight.diffuse = new BABYLON.Color3(1, 0.96, 0.9);
+		this.sunLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
 		this.sunLight.specular = BABYLON.Color3.Black();
 
 		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
-		this.moonLight.diffuse = new BABYLON.Color3(0.48, 0.62, 1);
+		this.moonLight.diffuse = new BABYLON.Color3(0.58, 0.66, 0.86);
 		this.moonLight.specular = BABYLON.Color3.Black();
 
 		this.sun = BABYLON.MeshBuilder.CreatePlane('sun', {
@@ -116,10 +116,10 @@ export class DayNightCycle {
 			this.sun.position.set(center.x + x, center.y + y, center.z + z);
 			const sunDirection = center.subtract(this.sun.position).normalize();
 			this.sunLight.direction.copyFrom(sunDirection);
-			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.8) * lightMultiplier;
+			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.9) * lightMultiplier;
 			this.moonLight.intensity = 0;
 
-			const dayBlend = clamp01(altitude * 3.6);
+			const dayBlend = clamp01(altitude * 3.5);
 			const sky = lerpColor(this.twilightSky, this.daySky, dayBlend);
 			const fog = lerpColor(this.twilightSky, this.dayFog, dayBlend);
 			const ambient = lerp(DAYLIGHT_CONFIG.AMBIENT_TWILIGHT_INTENSITY, DAYLIGHT_CONFIG.AMBIENT_DAY_INTENSITY, dayBlend) * lightMultiplier;
@@ -133,7 +133,7 @@ export class DayNightCycle {
 			const moonDirection = center.subtract(this.moon.position).normalize();
 			this.moonLight.direction.copyFrom(moonDirection);
 			this.sunLight.intensity = 0;
-			this.moonLight.intensity = DAYLIGHT_CONFIG.MOON_MAX_INTENSITY * Math.pow(altitude, 0.7) * lightMultiplier;
+			this.moonLight.intensity = DAYLIGHT_CONFIG.MOON_MAX_INTENSITY * Math.pow(altitude, 0.75) * lightMultiplier;
 
 			const moonBlend = clamp01(altitude * 2.5);
 			const sky = lerpColor(this.twilightSky, this.nightSky, moonBlend);
