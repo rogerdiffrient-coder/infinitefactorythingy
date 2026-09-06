@@ -12,7 +12,7 @@ export const BLOCK_DEFINITIONS = Object.freeze({
 	[BLOCKS.GRASS]: {
 		id: BLOCKS.GRASS,
 		name: 'Grass Block',
-		texture: 'Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png',
+		texture: 'Assets/Blocks/Terrain/Grass-Block/grass-all-faces-v2.png',
 		solid: true
 	},
 	[BLOCKS.DIRT]: {
