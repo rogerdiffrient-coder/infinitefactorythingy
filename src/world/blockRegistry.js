@@ -1,0 +1,51 @@
+import { WORLD_CONFIG } from '../config.js';
+
+export const BLOCKS = Object.freeze({
+	AIR: 0,
+	GRASS: 1
+});
+
+export const BLOCK_DEFINITIONS = Object.freeze({
+	[BLOCKS.GRASS]: {
+		id: BLOCKS.GRASS,
+		name: 'Grass Block',
+		texture: 'Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png',
+		solid: true
+	}
+});
+
+const materialCache = new Map();
+
+export function getBlockDefinition(id) {
+	return BLOCK_DEFINITIONS[id] ?? null;
+}
+
+export function getBlockMaterial(scene, id) {
+	if (materialCache.has(id)) return materialCache.get(id);
+
+	const definition = getBlockDefinition(id);
+	if (!definition) throw new Error(`Unknown block id: ${id}`);
+
+	const material = new BABYLON.StandardMaterial(`block-material-${id}`, scene);
+	material.diffuseColor = BABYLON.Color3.White();
+	material.specularColor = BABYLON.Color3.Black();
+	material.ambientColor = BABYLON.Color3.White();
+
+	const texture = new BABYLON.Texture(definition.texture, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
+	texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
+	texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+	texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+	texture.anisotropicFilteringLevel = 1;
+	texture.hasAlpha = false;
+
+	material.diffuseTexture = texture;
+	material.useAlphaFromDiffuseTexture = false;
+	material.freeze();
+
+	materialCache.set(id, material);
+	return material;
+}
+
+export function blockUnitsToMeters(blocks) {
+	return blocks * WORLD_CONFIG.BLOCK_SIZE;
+}
