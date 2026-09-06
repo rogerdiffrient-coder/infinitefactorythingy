@@ -49,8 +49,6 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		// Ambient skylight is intentionally neutral and moderate. It simulates
-		// indirect light from the sky without hardcoding per-face brightness.
 		this.daySkyLight = new BABYLON.Color3(0.78, 0.82, 0.88);
 		this.dayGroundLight = new BABYLON.Color3(0.48, 0.5, 0.54);
 		this.twilightSkyLight = new BABYLON.Color3(0.67, 0.56, 0.5);
@@ -63,17 +61,14 @@ export class DayNightCycle {
 		this.ambientLight.groundColor.copyFrom(this.dayGroundLight);
 		this.ambientLight.specular = BABYLON.Color3.Black();
 
-		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
+		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.sunLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
 		this.sunLight.specular = BABYLON.Color3.Black();
 
-		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
+		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.moonLight.diffuse = new BABYLON.Color3(0.48, 0.58, 0.9);
 		this.moonLight.specular = BABYLON.Color3.Black();
 
-		// Shadow maps were producing severe self-shadowing/banding across our
-		// large generated chunk meshes. Keep true directional Lambert lighting
-		// for now; proper chunk-safe shadow maps can be added later.
 		scene.metadata ??= {};
 		scene.metadata.iftShadowGenerator = null;
 
@@ -116,15 +111,15 @@ export class DayNightCycle {
 		const radius = DAYLIGHT_CONFIG.SKY_RADIUS;
 		const x = Math.cos(angle) * radius;
 		const y = Math.sin(angle) * radius;
-		const z = -radius * 0.4;
+		const z = 0;
 		const lightMultiplier = this.occluded ? 0.02 : 1;
 
 		if (isDay) {
 			this.sun.isVisible = true;
 			this.moon.isVisible = false;
 			this.sun.position.set(center.x + x, center.y + y, center.z + z);
-			this.sunLight.position.copyFrom(this.sun.position);
-			this.sunLight.direction.copyFrom(center.subtract(this.sun.position).normalize());
+			const directionToSun = this.sun.position.subtract(center).normalize();
+			this.sunLight.direction.copyFrom(directionToSun);
 			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.6) * lightMultiplier;
 			this.moonLight.intensity = 0;
 
@@ -139,8 +134,8 @@ export class DayNightCycle {
 			this.sun.isVisible = false;
 			this.moon.isVisible = true;
 			this.moon.position.set(center.x + x, center.y + y, center.z + z);
-			this.moonLight.position.copyFrom(this.moon.position);
-			this.moonLight.direction.copyFrom(center.subtract(this.moon.position).normalize());
+			const directionToMoon = this.moon.position.subtract(center).normalize();
+			this.moonLight.direction.copyFrom(directionToMoon);
 			this.sunLight.intensity = 0;
 			this.moonLight.intensity = DAYLIGHT_CONFIG.MOON_MAX_INTENSITY * Math.pow(altitude, 0.65) * lightMultiplier;
 
