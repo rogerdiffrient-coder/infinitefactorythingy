@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=shadow-balance-7';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=daylight-fill-10';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -45,8 +45,6 @@ function createCascadedShadowGenerator(light) {
 	generator.stabilizeCascades = true;
 	generator.depthClamp = true;
 	generator.autoCalcDepthBounds = true;
-	// The whole finite world is only ~144 blocks wide. 180 guarantees that a
-	// visible receiver can still be shadowed by a distant hill/building.
 	generator.shadowMaxZ = 180;
 	generator.cascadeBlendPercentage = 0.12;
 	generator.bias = 0.0015;
@@ -56,7 +54,7 @@ function createCascadedShadowGenerator(light) {
 	if (BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
 		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
 	}
-	generator.setDarkness?.(0.17);
+	generator.setDarkness?.(0.1);
 	return generator;
 }
 
@@ -79,15 +77,12 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		// Sky fill is deliberately top-heavy. Horizontal faces receive more sky
-		// light than vertical walls, while the directional sun still determines
-		// which wall is actually sun-facing.
-		this.daySkyLight = new BABYLON.Color3(0.9, 0.93, 0.97);
-		this.dayGroundLight = new BABYLON.Color3(0.38, 0.4, 0.43);
-		this.twilightSkyLight = new BABYLON.Color3(0.72, 0.64, 0.58);
-		this.twilightGroundLight = new BABYLON.Color3(0.3, 0.27, 0.27);
+		this.daySkyLight = new BABYLON.Color3(0.97, 0.985, 1.0);
+		this.dayGroundLight = new BABYLON.Color3(0.62, 0.64, 0.67);
+		this.twilightSkyLight = new BABYLON.Color3(0.8, 0.72, 0.66);
+		this.twilightGroundLight = new BABYLON.Color3(0.42, 0.39, 0.39);
 		this.nightSkyLight = new BABYLON.Color3(0.26, 0.34, 0.54);
-		this.nightGroundLight = new BABYLON.Color3(0.075, 0.09, 0.14);
+		this.nightGroundLight = new BABYLON.Color3(0.09, 0.11, 0.17);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
@@ -153,7 +148,6 @@ export class DayNightCycle {
 		const visible = chunks.filter(mesh => mesh.isInFrustum(frustumPlanes));
 		this.visibleChunkCount = visible.length;
 
-		// DirectionalLight.direction is the direction the light rays travel.
 		const lightDirection = this.sunLight.direction.normalizeToNew();
 		const maxShadowTravel = 180;
 		const chunkRadius = Math.sqrt(
@@ -164,9 +158,6 @@ export class DayNightCycle {
 		const lateralMargin = chunkRadius * 2 + 2;
 		const relevant = new Set(visible);
 
-		// A non-visible chunk still matters if sunlight can travel from that chunk
-		// into any visible chunk. This is conservative on purpose: no visible
-		// receiver is allowed to lose a legitimate caster just because it is off-screen.
 		for (const caster of chunks) {
 			if (relevant.has(caster)) continue;
 			const casterCenter = getChunkCenter(caster);
