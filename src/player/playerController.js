@@ -2,6 +2,7 @@ import { PLAYER_CONFIG } from '../config.js';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
+const EDGE_INSET = 0.05;
 
 export class PlayerController {
 	constructor(scene, canvas, input, world) {
@@ -13,6 +14,8 @@ export class PlayerController {
 		this.grounded = false;
 		this.sneaking = false;
 		this.currentHeight = PLAYER_CONFIG.HEIGHT;
+		this.lastForwardPressAt = -Infinity;
+		this.doubleTapSprinting = false;
 
 		this.body = BABYLON.MeshBuilder.CreateBox('player-collider', { size: 0.1 }, scene);
 		this.body.isVisible = false;
@@ -57,9 +60,7 @@ export class PlayerController {
 	}
 
 	update(dt) {
-		const wasSneaking = this.sneaking;
 		this.sneaking = this.input.down('ShiftLeft', 'ShiftRight');
-		const sprinting = this.input.down('ControlLeft', 'ControlRight') && !this.sneaking;
 		const newHeight = this.sneaking ? PLAYER_CONFIG.SNEAK_HEIGHT : PLAYER_CONFIG.HEIGHT;
 
 		if (newHeight !== this.currentHeight) {
@@ -76,11 +77,21 @@ export class PlayerController {
 		if (this.input.down('KeyD', 'ArrowRight')) sideInput += 1;
 		if (this.input.down('KeyA', 'ArrowLeft')) sideInput -= 1;
 
+		if (this.input.consume('KeyW')) {
+			const now = performance.now();
+			this.doubleTapSprinting = now - this.lastForwardPressAt <= PLAYER_CONFIG.DOUBLE_TAP_SPRINT_WINDOW_MS;
+			this.lastForwardPressAt = now;
+		}
+		if (!this.input.down('KeyW')) this.doubleTapSprinting = false;
+
 		const inputLength = Math.hypot(forwardInput, sideInput);
 		if (inputLength > 1) {
 			forwardInput /= inputLength;
 			sideInput /= inputLength;
 		}
+
+		const controlSprinting = this.input.down('ControlLeft', 'ControlRight');
+		const sprinting = !this.sneaking && forwardInput > 0 && (controlSprinting || this.doubleTapSprinting);
 
 		const yaw = this.camera.rotation.y;
 		const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
@@ -109,6 +120,10 @@ export class PlayerController {
 		const displacement = direction.scale(speed * dt);
 		displacement.y = this.grounded ? 0 : this.verticalVelocity * dt;
 
+		if (this.sneaking && this.grounded) {
+			this.applySneakEdgeSafety(displacement);
+		}
+
 		const beforeY = this.body.position.y;
 		this.body.moveWithCollisions(displacement);
 		const movedY = this.body.position.y - beforeY;
@@ -119,6 +134,35 @@ export class PlayerController {
 
 		this.refreshGroundedState(true);
 		this.syncCamera();
+	}
+
+	applySneakEdgeSafety(displacement) {
+		if (displacement.x === 0 && displacement.z === 0) return;
+
+		const currentX = this.body.position.x;
+		const currentZ = this.body.position.z;
+		const targetX = currentX + displacement.x;
+		const targetZ = currentZ + displacement.z;
+
+		if (this.hasSneakSupport(targetX, targetZ)) return;
+
+		const canMoveX = displacement.x !== 0 && this.hasSneakSupport(targetX, currentZ);
+		const canMoveZ = displacement.z !== 0 && this.hasSneakSupport(currentX, targetZ);
+
+		if (!canMoveX) displacement.x = 0;
+		if (!canMoveZ) displacement.z = 0;
+	}
+
+	hasSneakSupport(x, z) {
+		const feetY = this.getFeetY();
+		const radius = PLAYER_CONFIG.WIDTH / 2 - EDGE_INSET;
+		const probes = [
+			[x - radius, z - radius],
+			[x + radius, z - radius],
+			[x - radius, z + radius],
+			[x + radius, z + radius]
+		];
+		return probes.every(([px, pz]) => this.world.hasSupportAt(px, pz, feetY, 0.14));
 	}
 
 	refreshGroundedState(snap = false) {
