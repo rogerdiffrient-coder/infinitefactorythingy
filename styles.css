@@ -131,13 +131,15 @@ button:hover {
 	image-rendering: pixelated;
 }
 
-.heart-slot img {
+.heart-image {
 	position: absolute;
 	inset: 0;
 	width: 24px;
 	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 24px 24px;
 	image-rendering: pixelated;
-	object-fit: fill;
 }
 
 .heart-fill {
@@ -147,13 +149,14 @@ button:hover {
 	width: 100%;
 }
 
-.heart-fill img {
-	max-width: none;
+.damage-flash,
+.suffocation-shade {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
 }
 
 .damage-flash {
-	position: absolute;
-	inset: 0;
 	background: rgba(255, 32, 32, 0);
 }
 
@@ -161,9 +164,69 @@ button:hover {
 	animation: damage-flash 180ms ease-out;
 }
 
+.suffocation-shade {
+	background:
+		radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.94) 72%),
+		rgba(0, 0, 0, 0.5);
+	opacity: 0;
+	transition: opacity 90ms linear;
+}
+
+.suffocation-shade.active {
+	opacity: 1;
+}
+
 @keyframes damage-flash {
 	0% { background: rgba(255, 32, 32, 0.2); }
 	100% { background: rgba(255, 32, 32, 0); }
+}
+
+.hotbar {
+	position: absolute;
+	left: 50%;
+	bottom: 18px;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 4px;
+	padding: 5px;
+	border: 2px solid rgba(255, 255, 255, 0.18);
+	background: rgba(8, 13, 18, 0.72);
+	border-radius: 7px;
+	image-rendering: pixelated;
+}
+
+.hotbar-slot {
+	position: relative;
+	width: 42px;
+	height: 42px;
+	display: grid;
+	place-items: center;
+	border: 2px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.hotbar-slot.selected {
+	border-color: white;
+	box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.7);
+}
+
+.hotbar-slot img {
+	width: 30px;
+	height: 30px;
+	image-rendering: pixelated;
+}
+
+.selected-block-name {
+	position: absolute;
+	left: 50%;
+	bottom: calc(100% + 7px);
+	transform: translateX(-50%);
+	padding: 3px 7px;
+	border-radius: 5px;
+	background: rgba(3, 8, 12, 0.7);
+	font-size: 10px;
+	font-weight: 800;
+	white-space: nowrap;
 }
 
 .dev-left {
@@ -265,8 +328,22 @@ button:hover {
 	}
 
 	.heart-slot,
-	.heart-slot img {
+	.heart-image {
 		width: 20px;
 		height: 20px;
+	}
+
+	.heart-image {
+		background-size: 20px 20px;
+	}
+
+	.hotbar-slot {
+		width: 36px;
+		height: 36px;
+	}
+
+	.hotbar-slot img {
+		width: 26px;
+		height: 26px;
 	}
 }
