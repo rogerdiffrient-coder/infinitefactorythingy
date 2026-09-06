@@ -4,6 +4,7 @@ import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js';
 import { VoxelWorld } from './world/world.js';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js';
+import { DayNightCycle } from './world/dayNightCycle.js';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
@@ -48,21 +49,13 @@ scene.clearColor = new BABYLON.Color4(...RENDER_CONFIG.CLEAR_COLOR);
 scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
 scene.fogDensity = RENDER_CONFIG.FOG_DENSITY;
 scene.fogColor = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
-scene.ambientColor = new BABYLON.Color3(0.35, 0.4, 0.46);
+scene.ambientColor = new BABYLON.Color3(0.2, 0.24, 0.3);
 
 const standbyCamera = new BABYLON.FreeCamera('standby-camera', new BABYLON.Vector3(0, 14, -18), scene);
 standbyCamera.setTarget(new BABYLON.Vector3(0, 4, 0));
 scene.activeCamera = standbyCamera;
 
-const hemisphericLight = new BABYLON.HemisphericLight('sky-light', new BABYLON.Vector3(0.25, 1, 0.15), scene);
-hemisphericLight.intensity = 0.78;
-hemisphericLight.diffuse = new BABYLON.Color3(0.72, 0.84, 1);
-hemisphericLight.groundColor = new BABYLON.Color3(0.17, 0.2, 0.26);
-
-const sunLight = new BABYLON.DirectionalLight('sun-light', new BABYLON.Vector3(-0.55, -1, 0.35), scene);
-sunLight.intensity = 0.52;
-sunLight.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
-
+const dayNight = new DayNightCycle(scene);
 const input = new InputState();
 const worldManager = new WorldManager();
 
@@ -85,9 +78,7 @@ suffocationShell.checkCollisions = false;
 function resetWorldVisualState() {
 	suffocationShell.isVisible = false;
 	suffocationShade.classList.remove('active');
-	hemisphericLight.intensity = 0.78;
-	sunLight.intensity = 0.52;
-	scene.ambientColor.set(0.35, 0.4, 0.46);
+	dayNight.setOccluded(false);
 }
 
 function clearExistingWorld() {
@@ -129,6 +120,8 @@ function startWorld(record) {
 
 	health = new HealthSystem(player, healthBar, damageFlash);
 	blockInteraction = new BlockInteraction(canvas, player, world, hotbar, selectedBlockName);
+	dayNight.reset();
+	dayNight.update(0, player.getPosition());
 
 	titleScreen.hide();
 	boot.classList.add('hidden');
@@ -227,15 +220,14 @@ function updateSuffocationVisual() {
 	const block = player.getSuffocationBlock();
 	const suffocating = block !== null;
 	suffocationShade.classList.toggle('active', suffocating);
+	dayNight.setOccluded(suffocating);
+
 	if (suffocating && block) {
 		suffocationShell.position.set(block.x + 0.5, block.y + 0.5, block.z + 0.5);
 		suffocationShell.material = getBlockMaterial(scene, block.id);
 		suffocationShell.isVisible = true;
-		hemisphericLight.intensity = 0.035;
-		sunLight.intensity = 0;
-		scene.ambientColor.set(0.025, 0.025, 0.025);
 	} else {
-		resetWorldVisualState();
+		suffocationShell.isVisible = false;
 	}
 }
 
@@ -247,10 +239,12 @@ function updateDebug(dt) {
 	const position = player.getPosition();
 	const chunkStats = world.getChunkStats();
 	const selected = getBlockDefinition(blockInteraction.getSelectedBlockId());
+	const cycle = dayNight.getState();
 	debug.textContent = [
 		`${engine.getFps().toFixed(0)} FPS`,
 		`WORLD ${activeWorldRecord?.name ?? 'UNKNOWN'}`,
 		`SEED ${world.seed}`,
+		`SKY ${cycle.label} ${(cycle.progress * 100).toFixed(1)}%`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
 		`SPRINT ${player.sprinting ? 'ON' : 'OFF'}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
@@ -267,13 +261,16 @@ engine.runRenderLoop(() => {
 	const now = performance.now();
 	const dt = Math.min((now - lastTime) / 1000, 0.05);
 	lastTime = now;
+
 	if (player && document.pointerLockElement === canvas) {
 		player.update(dt);
 		health.update(dt);
 		updateSuffocationVisual();
+		dayNight.update(dt, player.getPosition());
 		updateTarget();
 		updateDebug(dt);
 	}
+
 	input.endFrame();
 	scene.render();
 });
