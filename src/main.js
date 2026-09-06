@@ -22,6 +22,7 @@ const cancelCreateWorld = document.querySelector('#cancelCreateWorld');
 const boot = document.querySelector('#boot');
 const bootStatus = document.querySelector('#bootStatus');
 const playButton = document.querySelector('#playButton');
+const mainMenuButton = document.querySelector('#mainMenuButton');
 const hud = document.querySelector('#hud');
 const healthBar = document.querySelector('#healthBar');
 const damageFlash = document.querySelector('#damageFlash');
@@ -81,12 +82,22 @@ suffocationShell.isVisible = false;
 suffocationShell.isPickable = false;
 suffocationShell.checkCollisions = false;
 
+function resetWorldVisualState() {
+	suffocationShell.isVisible = false;
+	suffocationShade.classList.remove('active');
+	hemisphericLight.intensity = 0.78;
+	sunLight.intensity = 0.52;
+	scene.ambientColor.set(0.35, 0.4, 0.46);
+}
+
 function clearExistingWorld() {
+	blockInteraction?.dispose?.();
 	for (const mesh of [...scene.meshes]) {
 		if (mesh.metadata?.isVoxelChunk) mesh.dispose(false, false);
 	}
 	player?.body?.dispose?.();
 	player?.camera?.dispose?.();
+	resetWorldVisualState();
 	scene.activeCamera = standbyCamera;
 	world = null;
 	player = null;
@@ -123,7 +134,7 @@ function startWorld(record) {
 	boot.classList.add('hidden');
 	hud.classList.remove('hidden');
 	const stats = world.getChunkStats();
-	bootStatus.textContent = `${activeWorldRecord.name} · seed ${activeWorldRecord.seed} · ${stats.faces.toLocaleString()} faces`;
+	bootStatus.textContent = `${activeWorldRecord.name} · SEED ${activeWorldRecord.seed} · ${stats.faces.toLocaleString()} FACES`;
 	playButton.textContent = 'RETURN TO WORLD';
 	lockPointer();
 }
@@ -142,6 +153,15 @@ const titleScreen = new TitleScreen(worldManager, {
 }, {
 	onPlay: startWorld
 });
+
+function returnToMainMenu() {
+	if (document.pointerLockElement) document.exitPointerLock?.();
+	clearExistingWorld();
+	activeWorldRecord = null;
+	boot.classList.add('hidden');
+	hud.classList.add('hidden');
+	titleScreen.show();
+}
 
 function setDevOverlayVisible(visible) {
 	devOverlayVisible = visible;
@@ -168,6 +188,8 @@ playButton.addEventListener('click', () => {
 	lockPointer();
 });
 
+mainMenuButton.addEventListener('click', returnToMainMenu);
+
 canvas.addEventListener('click', () => {
 	if (player && boot.classList.contains('hidden') && titleRoot.classList.contains('hidden')) lockPointer();
 });
@@ -179,7 +201,7 @@ document.addEventListener('pointerlockchange', () => {
 	}
 	if (!player || !titleRoot.classList.contains('hidden')) return;
 	boot.classList.remove('hidden');
-	bootStatus.textContent = `${activeWorldRecord?.name ?? 'World'} · seed ${activeWorldRecord?.seed ?? 0}`;
+	bootStatus.textContent = `${activeWorldRecord?.name ?? 'WORLD'} · SEED ${activeWorldRecord?.seed ?? 0}`;
 	playButton.textContent = 'RETURN TO WORLD';
 });
 
@@ -190,7 +212,6 @@ function updateTarget() {
 		target.textContent = 'AIR';
 		return;
 	}
-
 	const normal = hit.getNormal(true) ?? BABYLON.Vector3.Zero();
 	const insidePoint = hit.pickedPoint.subtract(normal.scale(0.001));
 	const x = Math.floor(insidePoint.x);
@@ -198,7 +219,7 @@ function updateTarget() {
 	const z = Math.floor(insidePoint.z);
 	const blockId = world.getBlock(x, y, z);
 	const definition = getBlockDefinition(blockId);
-	target.textContent = definition ? `${definition.name} · ${x}, ${y}, ${z}` : 'AIR';
+	target.textContent = definition ? `${definition.name.toUpperCase()} · ${x}, ${y}, ${z}` : 'AIR';
 }
 
 function updateSuffocationVisual() {
@@ -206,7 +227,6 @@ function updateSuffocationVisual() {
 	const block = player.getSuffocationBlock();
 	const suffocating = block !== null;
 	suffocationShade.classList.toggle('active', suffocating);
-
 	if (suffocating && block) {
 		suffocationShell.position.set(block.x + 0.5, block.y + 0.5, block.z + 0.5);
 		suffocationShell.material = getBlockMaterial(scene, block.id);
@@ -215,10 +235,7 @@ function updateSuffocationVisual() {
 		sunLight.intensity = 0;
 		scene.ambientColor.set(0.025, 0.025, 0.025);
 	} else {
-		suffocationShell.isVisible = false;
-		hemisphericLight.intensity = 0.78;
-		sunLight.intensity = 0.52;
-		scene.ambientColor.set(0.35, 0.4, 0.46);
+		resetWorldVisualState();
 	}
 }
 
@@ -227,15 +244,15 @@ function updateDebug(dt) {
 	debugTimer += dt;
 	if (debugTimer < 0.12) return;
 	debugTimer = 0;
-
 	const position = player.getPosition();
 	const chunkStats = world.getChunkStats();
 	const selected = getBlockDefinition(blockInteraction.getSelectedBlockId());
 	debug.textContent = [
 		`${engine.getFps().toFixed(0)} FPS`,
-		`WORLD ${activeWorldRecord?.name ?? 'Unknown'}`,
+		`WORLD ${activeWorldRecord?.name ?? 'UNKNOWN'}`,
 		`SEED ${world.seed}`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
+		`SPRINT ${player.sprinting ? 'ON' : 'OFF'}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
 		`HEALTH ${health.health.toFixed(1)} / ${health.maxHealth}`,
@@ -250,7 +267,6 @@ engine.runRenderLoop(() => {
 	const now = performance.now();
 	const dt = Math.min((now - lastTime) / 1000, 0.05);
 	lastTime = now;
-
 	if (player && document.pointerLockElement === canvas) {
 		player.update(dt);
 		health.update(dt);
@@ -258,7 +274,6 @@ engine.runRenderLoop(() => {
 		updateTarget();
 		updateDebug(dt);
 	}
-
 	input.endFrame();
 	scene.render();
 });
