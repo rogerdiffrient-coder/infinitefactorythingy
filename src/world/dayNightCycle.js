@@ -41,12 +41,14 @@ function createCascadedShadowGenerator(light) {
 	if (!BABYLON.CascadedShadowGenerator) return null;
 	const generator = new BABYLON.CascadedShadowGenerator(2048, light);
 	generator.numCascades = 4;
-	generator.lambda = 0.82;
+	generator.lambda = 0.78;
 	generator.stabilizeCascades = true;
 	generator.depthClamp = true;
 	generator.autoCalcDepthBounds = true;
-	generator.shadowMaxZ = 64;
-	generator.cascadeBlendPercentage = 0.1;
+	// The whole finite world is only ~144 blocks wide. 180 guarantees that a
+	// visible receiver can still be shadowed by a distant hill/building.
+	generator.shadowMaxZ = 180;
+	generator.cascadeBlendPercentage = 0.12;
 	generator.bias = 0.0015;
 	generator.normalBias = 0.035;
 	generator.forceBackFacesOnly = true;
@@ -54,8 +56,12 @@ function createCascadedShadowGenerator(light) {
 	if (BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
 		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
 	}
-	generator.setDarkness?.(0.18);
+	generator.setDarkness?.(0.17);
 	return generator;
+}
+
+function getChunkCenter(mesh) {
+	return mesh.getBoundingInfo().boundingSphere.centerWorld;
 }
 
 export class DayNightCycle {
@@ -63,8 +69,9 @@ export class DayNightCycle {
 		this.scene = scene;
 		this.elapsed = DAYLIGHT_CONFIG.START_TIME_SECONDS;
 		this.occluded = false;
-		this.lastShadowChunkX = null;
-		this.lastShadowChunkZ = null;
+		this.shadowRefreshTimer = 0;
+		this.shadowCasterCount = 0;
+		this.visibleChunkCount = 0;
 
 		this.daySky = new BABYLON.Color3(0.42, 0.72, 0.96);
 		this.twilightSky = new BABYLON.Color3(0.76, 0.46, 0.32);
@@ -72,12 +79,15 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		this.daySkyLight = new BABYLON.Color3(0.96, 0.98, 1.0);
-		this.dayGroundLight = new BABYLON.Color3(0.68, 0.7, 0.74);
-		this.twilightSkyLight = new BABYLON.Color3(0.78, 0.69, 0.62);
-		this.twilightGroundLight = new BABYLON.Color3(0.45, 0.4, 0.39);
-		this.nightSkyLight = new BABYLON.Color3(0.28, 0.36, 0.56);
-		this.nightGroundLight = new BABYLON.Color3(0.11, 0.13, 0.2);
+		// Sky fill is deliberately top-heavy. Horizontal faces receive more sky
+		// light than vertical walls, while the directional sun still determines
+		// which wall is actually sun-facing.
+		this.daySkyLight = new BABYLON.Color3(0.9, 0.93, 0.97);
+		this.dayGroundLight = new BABYLON.Color3(0.38, 0.4, 0.43);
+		this.twilightSkyLight = new BABYLON.Color3(0.72, 0.64, 0.58);
+		this.twilightGroundLight = new BABYLON.Color3(0.3, 0.27, 0.27);
+		this.nightSkyLight = new BABYLON.Color3(0.26, 0.34, 0.54);
+		this.nightGroundLight = new BABYLON.Color3(0.075, 0.09, 0.14);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
@@ -118,39 +128,71 @@ export class DayNightCycle {
 	reset() {
 		this.elapsed = DAYLIGHT_CONFIG.START_TIME_SECONDS;
 		this.occluded = false;
-		this.lastShadowChunkX = null;
-		this.lastShadowChunkZ = null;
+		this.shadowRefreshTimer = 0;
+		this.shadowCasterCount = 0;
+		this.visibleChunkCount = 0;
 	}
 
 	setOccluded(occluded) {
 		this.occluded = Boolean(occluded);
 	}
 
-	updateShadowCasters(center) {
+	updateShadowCasters(dt) {
 		if (!this.shadowGenerator) return;
-		const playerChunkX = Math.floor(center.x / WORLD_CONFIG.CHUNK_SIZE_X);
-		const playerChunkZ = Math.floor(center.z / WORLD_CONFIG.CHUNK_SIZE_Z);
-		if (playerChunkX === this.lastShadowChunkX && playerChunkZ === this.lastShadowChunkZ) return;
+		this.shadowRefreshTimer -= dt;
+		if (this.shadowRefreshTimer > 0) return;
+		this.shadowRefreshTimer = 0.1;
 
-		this.lastShadowChunkX = playerChunkX;
-		this.lastShadowChunkZ = playerChunkZ;
-		const renderList = [];
-		for (const mesh of this.scene.meshes) {
-			if (!mesh.metadata?.isVoxelChunk) continue;
-			const chunk = mesh.metadata.chunk;
-			if (!chunk) continue;
-			const dx = Math.abs(chunk.chunkX - playerChunkX);
-			const dz = Math.abs(chunk.chunkZ - playerChunkZ);
-			if (dx <= 2 && dz <= 2) renderList.push(mesh);
+		const camera = this.scene.activeCamera;
+		if (!camera || camera.name === 'standby-camera') return;
+
+		const chunks = this.scene.meshes.filter(mesh => mesh.metadata?.isVoxelChunk && mesh.isEnabled() && mesh.isVisible);
+		if (chunks.length === 0) return;
+
+		const frustumPlanes = BABYLON.Frustum.GetPlanes(camera.getTransformationMatrix());
+		const visible = chunks.filter(mesh => mesh.isInFrustum(frustumPlanes));
+		this.visibleChunkCount = visible.length;
+
+		// DirectionalLight.direction is the direction the light rays travel.
+		const lightDirection = this.sunLight.direction.normalizeToNew();
+		const maxShadowTravel = 180;
+		const chunkRadius = Math.sqrt(
+			WORLD_CONFIG.CHUNK_SIZE_X ** 2 +
+			WORLD_CONFIG.CHUNK_SIZE_Y ** 2 +
+			WORLD_CONFIG.CHUNK_SIZE_Z ** 2
+		) * 0.5;
+		const lateralMargin = chunkRadius * 2 + 2;
+		const relevant = new Set(visible);
+
+		// A non-visible chunk still matters if sunlight can travel from that chunk
+		// into any visible chunk. This is conservative on purpose: no visible
+		// receiver is allowed to lose a legitimate caster just because it is off-screen.
+		for (const caster of chunks) {
+			if (relevant.has(caster)) continue;
+			const casterCenter = getChunkCenter(caster);
+
+			for (const receiver of visible) {
+				const receiverCenter = getChunkCenter(receiver);
+				const casterToReceiver = receiverCenter.subtract(casterCenter);
+				const alongLight = BABYLON.Vector3.Dot(casterToReceiver, lightDirection);
+				if (alongLight < -chunkRadius || alongLight > maxShadowTravel + chunkRadius) continue;
+
+				const projected = lightDirection.scale(alongLight);
+				const sidewaysDistance = casterToReceiver.subtract(projected).length();
+				if (sidewaysDistance <= lateralMargin) {
+					relevant.add(caster);
+					break;
+				}
+			}
 		}
 
 		const shadowMap = this.shadowGenerator.getShadowMap?.();
-		if (shadowMap) shadowMap.renderList = renderList;
+		if (shadowMap) shadowMap.renderList = [...relevant];
+		this.shadowCasterCount = relevant.size;
 	}
 
 	update(dt, center = BABYLON.Vector3.Zero()) {
 		this.elapsed = (this.elapsed + dt) % DAYLIGHT_CONFIG.CYCLE_SECONDS;
-		this.updateShadowCasters(center);
 
 		const isDay = this.elapsed < DAYLIGHT_CONFIG.DAY_SECONDS;
 		const phaseSeconds = isDay ? this.elapsed : this.elapsed - DAYLIGHT_CONFIG.DAY_SECONDS;
@@ -205,6 +247,8 @@ export class DayNightCycle {
 				lerpColor(this.twilightGroundLight, this.nightGroundLight, moonBlend)
 			);
 		}
+
+		this.updateShadowCasters(dt);
 	}
 
 	applySky(sky, fog, ambientIntensity, skyLight, groundLight) {
@@ -223,7 +267,9 @@ export class DayNightCycle {
 		return {
 			isDay,
 			progress: phaseSeconds / phaseDuration,
-			label: isDay ? 'DAY' : 'NIGHT'
+			label: isDay ? 'DAY' : 'NIGHT',
+			visibleChunks: this.visibleChunkCount,
+			shadowCasters: this.shadowCasterCount
 		};
 	}
 }
