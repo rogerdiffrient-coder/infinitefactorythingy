@@ -74,6 +74,19 @@ export class VoxelWorld {
 		return Boolean(definition?.solid);
 	}
 
+	getVerticalBounds() {
+		let minChunkY = 0;
+		let maxChunkY = 0;
+		for (const chunk of this.chunks.values()) {
+			minChunkY = Math.min(minChunkY, chunk.chunkY);
+			maxChunkY = Math.max(maxChunkY, chunk.chunkY);
+		}
+		return {
+			minY: minChunkY * SY,
+			maxY: (maxChunkY + 1) * SY - 1
+		};
+	}
+
 	getGeneratedBlock(x, y, z) {
 		const radius = WORLD_CONFIG.STARTER_CHUNK_RADIUS;
 		const minX = -radius * SX;
@@ -141,10 +154,12 @@ export class VoxelWorld {
 		}
 	}
 
-	getSurfaceYAt(x, z, maxY = WORLD_CONFIG.CHUNK_SIZE_Y * 4) {
+	getSurfaceYAt(x, z, maxY = null) {
 		const blockX = Math.floor(x);
 		const blockZ = Math.floor(z);
-		for (let y = Math.floor(maxY); y >= -WORLD_CONFIG.CHUNK_SIZE_Y * 2; y--) {
+		const bounds = this.getVerticalBounds();
+		const scanTop = maxY === null ? bounds.maxY : Math.min(Math.floor(maxY), bounds.maxY);
+		for (let y = scanTop; y >= bounds.minY; y--) {
 			if (this.isSolid(blockX, y, blockZ)) return y + 1;
 		}
 		return null;
@@ -153,8 +168,9 @@ export class VoxelWorld {
 	getCeilingBottomYAt(x, z, minY, maxY) {
 		const blockX = Math.floor(x);
 		const blockZ = Math.floor(z);
-		const start = Math.floor(minY);
-		const end = Math.floor(maxY);
+		const bounds = this.getVerticalBounds();
+		const start = Math.max(Math.floor(minY), bounds.minY);
+		const end = Math.min(Math.floor(maxY), bounds.maxY);
 		for (let y = start; y <= end; y++) {
 			if (this.isSolid(blockX, y, blockZ)) return y;
 		}
