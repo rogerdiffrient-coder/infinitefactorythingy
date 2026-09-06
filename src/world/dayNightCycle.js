@@ -49,12 +49,19 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
+		this.daySkyLight = new BABYLON.Color3(0.95, 0.98, 1);
+		this.dayGroundLight = new BABYLON.Color3(0.78, 0.86, 0.92);
+		this.twilightSkyLight = new BABYLON.Color3(0.82, 0.67, 0.58);
+		this.twilightGroundLight = new BABYLON.Color3(0.55, 0.47, 0.46);
+		this.nightSkyLight = new BABYLON.Color3(0.28, 0.36, 0.56);
+		this.nightGroundLight = new BABYLON.Color3(0.17, 0.22, 0.34);
+
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
-		this.ambientLight.diffuse = new BABYLON.Color3(0.74, 0.84, 1);
-		this.ambientLight.groundColor = new BABYLON.Color3(0.12, 0.14, 0.2);
+		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
+		this.ambientLight.groundColor.copyFrom(this.dayGroundLight);
 
 		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
-		this.sunLight.diffuse = new BABYLON.Color3(1, 0.91, 0.73);
+		this.sunLight.diffuse = new BABYLON.Color3(1, 0.96, 0.88);
 		this.sunLight.specular = BABYLON.Color3.Black();
 
 		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
@@ -109,13 +116,16 @@ export class DayNightCycle {
 			this.sun.position.set(center.x + x, center.y + y, center.z + z);
 			const sunDirection = center.subtract(this.sun.position).normalize();
 			this.sunLight.direction.copyFrom(sunDirection);
-			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.45) * lightMultiplier;
+			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.7) * lightMultiplier;
 			this.moonLight.intensity = 0;
 
-			const dayBlend = clamp01(altitude * 3.2);
+			const dayBlend = clamp01(altitude * 4);
 			const sky = lerpColor(this.twilightSky, this.daySky, dayBlend);
 			const fog = lerpColor(this.twilightSky, this.dayFog, dayBlend);
-			this.applySky(sky, fog, lerp(DAYLIGHT_CONFIG.AMBIENT_NIGHT_INTENSITY, DAYLIGHT_CONFIG.AMBIENT_DAY_INTENSITY, dayBlend) * lightMultiplier);
+			const ambient = lerp(DAYLIGHT_CONFIG.AMBIENT_TWILIGHT_INTENSITY, DAYLIGHT_CONFIG.AMBIENT_DAY_INTENSITY, dayBlend) * lightMultiplier;
+			const skyLight = lerpColor(this.twilightSkyLight, this.daySkyLight, dayBlend);
+			const groundLight = lerpColor(this.twilightGroundLight, this.dayGroundLight, dayBlend);
+			this.applySky(sky, fog, ambient, skyLight, groundLight);
 		} else {
 			this.sun.isVisible = false;
 			this.moon.isVisible = true;
@@ -123,23 +133,28 @@ export class DayNightCycle {
 			const moonDirection = center.subtract(this.moon.position).normalize();
 			this.moonLight.direction.copyFrom(moonDirection);
 			this.sunLight.intensity = 0;
-			this.moonLight.intensity = DAYLIGHT_CONFIG.MOON_MAX_INTENSITY * Math.pow(altitude, 0.5) * lightMultiplier;
+			this.moonLight.intensity = DAYLIGHT_CONFIG.MOON_MAX_INTENSITY * Math.pow(altitude, 0.65) * lightMultiplier;
 
 			const moonBlend = clamp01(altitude * 2.5);
 			const sky = lerpColor(this.twilightSky, this.nightSky, moonBlend);
 			const fog = lerpColor(this.twilightSky, this.nightFog, moonBlend);
-			this.applySky(sky, fog, DAYLIGHT_CONFIG.AMBIENT_NIGHT_INTENSITY * lightMultiplier);
+			const ambient = lerp(DAYLIGHT_CONFIG.AMBIENT_TWILIGHT_INTENSITY, DAYLIGHT_CONFIG.AMBIENT_NIGHT_INTENSITY, moonBlend) * lightMultiplier;
+			const skyLight = lerpColor(this.twilightSkyLight, this.nightSkyLight, moonBlend);
+			const groundLight = lerpColor(this.twilightGroundLight, this.nightGroundLight, moonBlend);
+			this.applySky(sky, fog, ambient, skyLight, groundLight);
 		}
 	}
 
-	applySky(sky, fog, ambientIntensity) {
+	applySky(sky, fog, ambientIntensity, skyLight, groundLight) {
 		this.scene.clearColor.set(sky.r, sky.g, sky.b, 1);
 		this.scene.fogColor.copyFrom(fog);
 		this.ambientLight.intensity = ambientIntensity;
+		this.ambientLight.diffuse.copyFrom(skyLight);
+		this.ambientLight.groundColor.copyFrom(groundLight);
 		this.scene.ambientColor.set(
-			ambientIntensity * 0.65,
-			ambientIntensity * 0.72,
-			ambientIntensity * 0.82
+			ambientIntensity * 0.82,
+			ambientIntensity * 0.86,
+			ambientIntensity * 0.9
 		);
 	}
 
