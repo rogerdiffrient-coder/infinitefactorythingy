@@ -76,6 +76,11 @@ export class VoxelWorld {
 		return null;
 	}
 
+	hasSupportAt(x, z, feetY, tolerance = 0.12) {
+		const surfaceY = this.getSurfaceYAt(x, z, Math.ceil(feetY + 1));
+		return surfaceY !== null && Math.abs(surfaceY - feetY) <= tolerance;
+	}
+
 	createStarterWorld() {
 		const radius = WORLD_CONFIG.STARTER_CHUNK_RADIUS;
 		const groundHeight = WORLD_CONFIG.STARTER_GROUND_HEIGHT;
@@ -95,8 +100,11 @@ export class VoxelWorld {
 			for (let x = minX; x < maxX; x++) {
 				for (let y = 0; y < groundHeight; y++) {
 					let block = BLOCKS.STONE;
-					if (y === groundHeight - 1) block = BLOCKS.GRASS;
-					else if (y === groundHeight - 2) block = BLOCKS.DIRT;
+					if (y === groundHeight - 1) {
+						block = BLOCKS.GRASS;
+					} else if (y >= groundHeight - 4) {
+						block = BLOCKS.DIRT;
+					}
 					this.setBlock(x, y, z, block);
 				}
 			}
