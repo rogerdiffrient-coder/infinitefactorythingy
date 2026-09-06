@@ -51,6 +51,8 @@ Do before rebuilding gameplay UI.
 - define input/output port positions in machine metadata
 - preload assets cleanly before entering gameplay
 
+**Art format is locked in `docs/PIXEL_ART_RULES.md`: real pixel-art assets, separate transparent PNGs for important machines, and sprite sheets only when they serve animation/icon/tileset purposes.**
+
 **Exit condition:** we can assemble a fake factory scene entirely from near-final-direction assets.
 
 ---
@@ -360,7 +362,7 @@ Example conceptual schema:
   cost: 300,
   powerUse: 10,
   footprint: [2, 2],
-  asset: 'assets/buildings/processing/furnace.svg',
+  asset: 'assets/pixel/buildings/processing/furnace.png',
   inputs: [...],
   outputs: [...],
   recipes: [...]
@@ -376,19 +378,28 @@ Example conceptual schema:
 
 ## Art rules
 - HTML/CSS may frame the UI
-- actual world objects use reusable art assets
+- actual world objects use reusable pixel-art assets
 - no emoji as final gameplay art
 - no giant pile of one-off inline SVG strings inside game logic
+- important machines get separate PNGs; sheets are reserved for animations, icons, effects, and tilesets
 
 ---
 
-# First three commits from here
+# First commits from here
 
-## Commit A — Asset system
-- create asset directories
-- add art bible
-- add first SVG machine/item pack
-- asset manifest/preloader
+## Commit A1 — Correct pixel pipeline
+- pixel-art rules
+- delete incorrect vector / mystery-atlas runtime art
+- begin separate PNG machine pack
+
+## Commit A2 — Finish core art pack
+- Auto Extractor
+- Conveyor variants
+- Splitter / Merger / Buffer
+- Furnace / Press / Assembler
+- Auto Seller
+- Coal Generator / Research Lab
+- starter items / terrain / FX
 
 ## Commit B — Side-view world shell
 - replace current presentation with real world canvas/renderer
