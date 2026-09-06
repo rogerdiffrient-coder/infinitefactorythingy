@@ -9,6 +9,7 @@ const boot = document.querySelector('#boot');
 const bootStatus = document.querySelector('#bootStatus');
 const playButton = document.querySelector('#playButton');
 const hud = document.querySelector('#hud');
+const devLeft = document.querySelector('#devLeft');
 const debug = document.querySelector('#debug');
 const target = document.querySelector('#target');
 
@@ -54,6 +55,22 @@ player.spawn(0.5, WORLD_CONFIG.STARTER_GROUND_HEIGHT + 0.002, 0.5);
 const stats = world.getChunkStats();
 bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
 
+let devOverlayVisible = false;
+
+function setDevOverlayVisible(visible) {
+	devOverlayVisible = visible;
+	devLeft.classList.toggle('hidden', !visible);
+	debug.classList.toggle('hidden', !visible);
+}
+
+setDevOverlayVisible(false);
+
+document.addEventListener('keydown', event => {
+	if (event.code !== 'F3') return;
+	event.preventDefault();
+	setDevOverlayVisible(!devOverlayVisible);
+});
+
 function lockPointer() {
 	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
 }
@@ -97,6 +114,8 @@ function updateTarget() {
 }
 
 function updateDebug(dt) {
+	if (!devOverlayVisible) return;
+
 	debugTimer += dt;
 	if (debugTimer < 0.12) return;
 	debugTimer = 0;
