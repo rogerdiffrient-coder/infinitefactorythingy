@@ -135,12 +135,19 @@ export class DayNightCycle {
 		this.occluded = Boolean(occluded);
 	}
 
+	getShadowCasters() {
+		return this.scene.meshes.filter(mesh =>
+			(mesh.metadata?.isVoxelChunk || mesh.metadata?.isPlayerModel) &&
+			mesh.isEnabled() && mesh.isVisible
+		);
+	}
+
 	refreshShadowCasters() {
 		if (!this.shadowGenerator) return;
-		const chunks = this.scene.meshes.filter(mesh => mesh.metadata?.isVoxelChunk && mesh.isEnabled() && mesh.isVisible);
+		const casters = this.getShadowCasters();
 		const shadowMap = this.shadowGenerator.getShadowMap?.();
-		if (shadowMap) shadowMap.renderList = chunks;
-		this.shadowCasterCount = chunks.length;
+		if (shadowMap) shadowMap.renderList = casters;
+		this.shadowCasterCount = casters.length;
 	}
 
 	updateShadowStats(dt) {
@@ -150,9 +157,10 @@ export class DayNightCycle {
 
 		const camera = this.scene.activeCamera;
 		if (!camera || camera.name === 'standby-camera') return;
-		const chunks = this.scene.meshes.filter(mesh => mesh.metadata?.isVoxelChunk && mesh.isEnabled() && mesh.isVisible);
+		const casters = this.getShadowCasters();
+		if (casters.length !== this.shadowCasterCount) this.refreshShadowCasters();
 
-		if (chunks.length !== this.shadowCasterCount) this.refreshShadowCasters();
+		const chunks = this.scene.meshes.filter(mesh => mesh.metadata?.isVoxelChunk && mesh.isEnabled() && mesh.isVisible);
 		const frustumPlanes = BABYLON.Frustum.GetPlanes(camera.getTransformationMatrix());
 		this.visibleChunkCount = chunks.filter(mesh => mesh.isInFrustum(frustumPlanes)).length;
 	}
