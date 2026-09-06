@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG } from '../config.js';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG } from '../config.js?v=real-lighting-1';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
