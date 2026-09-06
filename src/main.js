@@ -3,12 +3,15 @@ import { InputState } from './input/input.js';
 import { getBlockDefinition } from './world/blockRegistry.js';
 import { VoxelWorld } from './world/world.js';
 import { PlayerController } from './player/playerController.js';
+import { HealthSystem } from './player/healthSystem.js';
 
 const canvas = document.querySelector('#renderCanvas');
 const boot = document.querySelector('#boot');
 const bootStatus = document.querySelector('#bootStatus');
 const playButton = document.querySelector('#playButton');
 const hud = document.querySelector('#hud');
+const healthBar = document.querySelector('#healthBar');
+const damageFlash = document.querySelector('#damageFlash');
 const devLeft = document.querySelector('#devLeft');
 const debug = document.querySelector('#debug');
 const target = document.querySelector('#target');
@@ -51,6 +54,8 @@ const player = new PlayerController(scene, canvas, input, world);
 player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
 player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
 player.spawnOnSurface(0.5, 0.5);
+
+const health = new HealthSystem(player, healthBar, damageFlash);
 
 const stats = world.getChunkStats();
 bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
@@ -132,6 +137,7 @@ function updateDebug(dt) {
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
+		`HEALTH ${health.health.toFixed(1)} / ${health.maxHealth}`,
 		`REACH ${PLAYER_CONFIG.MAX_REACH.toFixed(1)}m`,
 		`CHUNKS ${chunkStats.chunks} · FACES ${chunkStats.faces}`
 	].join('\n');
@@ -144,6 +150,7 @@ engine.runRenderLoop(() => {
 
 	if (document.pointerLockElement === canvas) {
 		player.update(dt);
+		health.update(dt);
 		updateTarget();
 		updateDebug(dt);
 	}
