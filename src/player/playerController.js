@@ -3,6 +3,7 @@ import { PLAYER_CONFIG } from '../config.js';
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
 const EDGE_INSET = 0.05;
+const CEILING_CLEARANCE = 0.002;
 
 export class PlayerController {
 	constructor(scene, canvas, input, world) {
@@ -42,6 +43,7 @@ export class PlayerController {
 	spawnAtFeet(x, feetY, z) {
 		this.verticalVelocity = 0;
 		this.grounded = true;
+		this.sneaking = false;
 		this.currentHeight = PLAYER_CONFIG.HEIGHT;
 		this.body.ellipsoid.y = this.currentHeight / 2;
 		this.body.position.set(x, feetY + this.currentHeight / 2, z);
@@ -104,36 +106,66 @@ export class PlayerController {
 				? PLAYER_CONFIG.SPRINT_SPEED
 				: PLAYER_CONFIG.WALK_SPEED;
 
-		this.refreshGroundedState();
+		this.refreshGroundedState(true);
 
 		if (this.grounded && this.input.consume('Space')) {
 			this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
 			this.grounded = false;
 		}
 
-		if (!this.grounded) {
-			this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
-		} else {
-			this.verticalVelocity = 0;
-		}
+		const horizontal = direction.scale(speed * dt);
+		if (this.sneaking && this.grounded) this.applySneakEdgeSafety(horizontal);
+		this.body.moveWithCollisions(new BABYLON.Vector3(horizontal.x, 0, horizontal.z));
 
-		const displacement = direction.scale(speed * dt);
-		displacement.y = this.grounded ? 0 : this.verticalVelocity * dt;
-
-		if (this.sneaking && this.grounded) {
-			this.applySneakEdgeSafety(displacement);
-		}
-
-		const beforeY = this.body.position.y;
-		this.body.moveWithCollisions(displacement);
-		const movedY = this.body.position.y - beforeY;
-
-		if (!this.grounded && displacement.y < 0 && Math.abs(movedY - displacement.y) > 0.001) {
-			this.verticalVelocity = 0;
-		}
-
+		this.applyVerticalMotion(dt);
 		this.refreshGroundedState(true);
 		this.syncCamera();
+	}
+
+	applyVerticalMotion(dt) {
+		if (this.grounded) {
+			this.verticalVelocity = 0;
+			return;
+		}
+
+		this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
+		const deltaY = this.verticalVelocity * dt;
+		if (deltaY === 0) return;
+
+		const oldFeet = this.getFeetY();
+		const oldHead = oldFeet + this.currentHeight;
+
+		if (deltaY < 0) {
+			const proposedFeet = oldFeet + deltaY;
+			const surfaceY = this.world.getSurfaceYAt(
+				this.body.position.x,
+				this.body.position.z,
+				Math.ceil(oldFeet + 0.25)
+			);
+
+			if (surfaceY !== null && oldFeet >= surfaceY - GROUND_TOLERANCE && proposedFeet <= surfaceY) {
+				this.body.position.y = surfaceY + this.currentHeight / 2;
+				this.verticalVelocity = 0;
+				this.grounded = true;
+				return;
+			}
+		} else {
+			const proposedHead = oldHead + deltaY;
+			const ceilingY = this.world.getCeilingBottomYAt(
+				this.body.position.x,
+				this.body.position.z,
+				oldHead,
+				proposedHead
+			);
+
+			if (ceilingY !== null && proposedHead >= ceilingY) {
+				this.body.position.y = ceilingY - this.currentHeight / 2 - CEILING_CLEARANCE;
+				this.verticalVelocity = 0;
+				return;
+			}
+		}
+
+		this.body.position.y += deltaY;
 	}
 
 	applySneakEdgeSafety(displacement) {
@@ -166,7 +198,16 @@ export class PlayerController {
 	}
 
 	refreshGroundedState(snap = false) {
-		const surfaceY = this.world.getSurfaceYAt(this.body.position.x, this.body.position.z, Math.ceil(this.body.position.y + 2));
+		if (this.verticalVelocity > 0) {
+			this.grounded = false;
+			return;
+		}
+
+		const surfaceY = this.world.getSurfaceYAt(
+			this.body.position.x,
+			this.body.position.z,
+			Math.ceil(this.getFeetY() + 0.25)
+		);
 		if (surfaceY === null) {
 			this.grounded = false;
 			return;
@@ -174,13 +215,28 @@ export class PlayerController {
 
 		const feetY = this.getFeetY();
 		const distance = feetY - surfaceY;
-		const canStand = this.verticalVelocity <= 0 && distance >= -GROUND_TOLERANCE && distance <= GROUND_TOLERANCE;
+		const canStand = distance >= -GROUND_TOLERANCE && distance <= GROUND_TOLERANCE;
 		this.grounded = canStand;
 
 		if (canStand && snap) {
 			this.body.position.y = surfaceY + this.currentHeight / 2;
 			this.verticalVelocity = 0;
 		}
+	}
+
+	isSuffocating() {
+		const feetY = this.getFeetY();
+		const headY = feetY + this.currentHeight - 0.05;
+		const radius = PLAYER_CONFIG.WIDTH / 2 - 0.04;
+		const probes = [
+			[this.body.position.x, this.body.position.z],
+			[this.body.position.x - radius, this.body.position.z - radius],
+			[this.body.position.x + radius, this.body.position.z - radius],
+			[this.body.position.x - radius, this.body.position.z + radius],
+			[this.body.position.x + radius, this.body.position.z + radius]
+		];
+		const blockY = Math.floor(headY);
+		return probes.some(([x, z]) => this.world.isSolid(Math.floor(x), blockY, Math.floor(z)));
 	}
 
 	getFeetY() {
