@@ -16,6 +16,15 @@ const DIMENSIONS = Object.freeze({
 	HIP_GAP: 0.04
 });
 
+const FACE_UV = Object.freeze([
+	new BABYLON.Vector4(0 / 3, 1 / 2, 1 / 3, 2 / 2),
+	new BABYLON.Vector4(1 / 3, 1 / 2, 2 / 3, 2 / 2),
+	new BABYLON.Vector4(2 / 3, 1 / 2, 3 / 3, 2 / 2),
+	new BABYLON.Vector4(0 / 3, 0 / 2, 1 / 3, 1 / 2),
+	new BABYLON.Vector4(1 / 3, 0 / 2, 2 / 3, 1 / 2),
+	new BABYLON.Vector4(2 / 3, 0 / 2, 3 / 3, 1 / 2)
+]);
+
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
 }
@@ -34,22 +43,27 @@ function makeTextureMaterial(scene, name, path) {
 	material.specularColor = BABYLON.Color3.Black();
 	material.backFaceCulling = true;
 
-	const texture = new BABYLON.Texture(path, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
+	const texture = new BABYLON.Texture(path, scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
 	texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
-	texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-	texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+	texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+	texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
 	texture.anisotropicFilteringLevel = 1;
 	material.diffuseTexture = texture;
 	return material;
 }
 
 function makePart(scene, name, dimensions, material, parent, position) {
-	const mesh = BABYLON.MeshBuilder.CreateBox(name, dimensions, scene);
+	const mesh = BABYLON.MeshBuilder.CreateBox(name, {
+		...dimensions,
+		faceUV: FACE_UV,
+		wrap: true
+	}, scene);
 	mesh.material = material;
 	mesh.parent = parent;
 	mesh.position.copyFrom(position);
 	mesh.isPickable = false;
 	mesh.checkCollisions = false;
+	mesh.receiveShadows = true;
 	mesh.layerMask = MODEL_LAYER;
 	mesh.metadata = { isPlayerModel: true };
 	return mesh;
@@ -73,10 +87,10 @@ export class PlayerModel {
 		this.firstPerson = true;
 
 		this.materials = {
-			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.svg'),
-			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.svg'),
-			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.svg'),
-			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.svg')
+			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png'),
+			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png'),
+			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png'),
+			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png')
 		};
 
 		const legTopY = DIMENSIONS.LEG_LENGTH;
