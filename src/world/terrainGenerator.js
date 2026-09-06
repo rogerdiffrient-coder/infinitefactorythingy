@@ -1,5 +1,5 @@
-import { WORLD_CONFIG } from '../config.js';
-import { BLOCKS } from './blockRegistry.js';
+import { WORLD_CONFIG } from '../config.js?v=bug-sweep-15';
+import { BLOCKS } from './blockRegistry.js?v=bug-sweep-15';
 
 function smoothstep(value) {
 	return value * value * (3 - 2 * value);
