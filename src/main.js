@@ -1,10 +1,10 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=lighting-rebalance-2';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=shadow-balance-7';
 import { InputState } from './input/input.js';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=lighting-rebalance-2';
 import { VoxelWorld } from './world/world.js?v=real-shadows-4';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=cascaded-shadows-6';
+import { DayNightCycle } from './world/dayNightCycle.js?v=shadow-balance-7';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
