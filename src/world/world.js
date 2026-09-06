@@ -1,6 +1,7 @@
 import { WORLD_CONFIG } from '../config.js';
 import { BLOCKS, getBlockDefinition } from './blockRegistry.js';
 import { Chunk } from './chunk.js';
+import { TerrainGenerator } from './terrainGenerator.js';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
@@ -22,6 +23,7 @@ export class VoxelWorld {
 		this.savedBlocks = { ...(options.savedBlocks ?? {}) };
 		this.onBlockEdit = options.onBlockEdit ?? null;
 		this.generating = false;
+		this.terrain = new TerrainGenerator(this.seed);
 	}
 
 	chunkKey(cx, cy, cz) {
@@ -133,12 +135,9 @@ export class VoxelWorld {
 	createStarterWorld() {
 		this.generating = true;
 		const radius = WORLD_CONFIG.STARTER_CHUNK_RADIUS;
-		const groundHeight = WORLD_CONFIG.STARTER_GROUND_HEIGHT;
 
 		for (let cz = -radius; cz <= radius; cz++) {
-			for (let cx = -radius; cx <= radius; cx++) {
-				this.ensureChunk(cx, 0, cz);
-			}
+			for (let cx = -radius; cx <= radius; cx++) this.ensureChunk(cx, 0, cz);
 		}
 
 		const minX = -radius * SX;
@@ -148,11 +147,10 @@ export class VoxelWorld {
 
 		for (let z = minZ; z < maxZ; z++) {
 			for (let x = minX; x < maxX; x++) {
-				for (let y = 0; y < groundHeight; y++) {
-					let block = BLOCKS.STONE;
-					if (y === groundHeight - 1) block = BLOCKS.GRASS;
-					else if (y >= groundHeight - 4) block = BLOCKS.DIRT;
-					this.setBlock(x, y, z, block);
+				const height = this.terrain.heightAt(x, z);
+				for (let y = 0; y < height; y++) {
+					const depthFromSurface = height - 1 - y;
+					this.setBlock(x, y, z, this.terrain.blockAtDepth(depthFromSurface));
 				}
 			}
 		}
@@ -161,7 +159,9 @@ export class VoxelWorld {
 			const [x, y, z] = key.split(',').map(Number);
 			if ([x, y, z].some(Number.isNaN)) continue;
 			const location = this.worldToChunk(x, y, z);
-			const chunk = id === BLOCKS.AIR ? this.getChunk(location.cx, location.cy, location.cz) : this.ensureChunk(location.cx, location.cy, location.cz);
+			const chunk = id === BLOCKS.AIR
+				? this.getChunk(location.cx, location.cy, location.cz)
+				: this.ensureChunk(location.cx, location.cy, location.cz);
 			if (chunk) chunk.setLocal(location.lx, location.ly, location.lz, Number(id));
 		}
 
