@@ -4,6 +4,7 @@ const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
 const EDGE_INSET = 0.05;
 const CEILING_CLEARANCE = 0.002;
+const COLLISION_SKIN = 0.001;
 
 export class PlayerController {
 	constructor(scene, canvas, input, world) {
@@ -21,7 +22,7 @@ export class PlayerController {
 		this.body = BABYLON.MeshBuilder.CreateBox('player-collider', { size: 0.1 }, scene);
 		this.body.isVisible = false;
 		this.body.isPickable = false;
-		this.body.checkCollisions = true;
+		this.body.checkCollisions = false;
 		this.body.ellipsoid = new BABYLON.Vector3(
 			PLAYER_CONFIG.WIDTH / 2,
 			PLAYER_CONFIG.HEIGHT / 2,
@@ -115,11 +116,57 @@ export class PlayerController {
 
 		const horizontal = direction.scale(speed * dt);
 		if (this.sneaking && this.grounded) this.applySneakEdgeSafety(horizontal);
-		this.body.moveWithCollisions(new BABYLON.Vector3(horizontal.x, 0, horizontal.z));
+		this.moveHorizontalWithVoxelCollision(horizontal.x, horizontal.z);
 
 		this.applyVerticalMotion(dt);
 		this.refreshGroundedState(true);
 		this.syncCamera();
+	}
+
+	moveHorizontalWithVoxelCollision(deltaX, deltaZ) {
+		if (deltaX !== 0) {
+			const targetX = this.body.position.x + deltaX;
+			if (!this.collidesWithWorld(targetX, this.body.position.z)) {
+				this.body.position.x = targetX;
+			}
+		}
+
+		if (deltaZ !== 0) {
+			const targetZ = this.body.position.z + deltaZ;
+			if (!this.collidesWithWorld(this.body.position.x, targetZ)) {
+				this.body.position.z = targetZ;
+			}
+		}
+	}
+
+	collidesWithWorld(centerX, centerZ) {
+		const half = PLAYER_CONFIG.WIDTH / 2;
+		const feetY = this.getFeetY();
+		const headY = feetY + this.currentHeight;
+
+		const minX = centerX - half + COLLISION_SKIN;
+		const maxX = centerX + half - COLLISION_SKIN;
+		const minY = feetY + COLLISION_SKIN;
+		const maxY = headY - COLLISION_SKIN;
+		const minZ = centerZ - half + COLLISION_SKIN;
+		const maxZ = centerZ + half - COLLISION_SKIN;
+
+		const blockMinX = Math.floor(minX);
+		const blockMaxX = Math.floor(maxX);
+		const blockMinY = Math.floor(minY);
+		const blockMaxY = Math.floor(maxY);
+		const blockMinZ = Math.floor(minZ);
+		const blockMaxZ = Math.floor(maxZ);
+
+		for (let y = blockMinY; y <= blockMaxY; y++) {
+			for (let z = blockMinZ; z <= blockMaxZ; z++) {
+				for (let x = blockMinX; x <= blockMaxX; x++) {
+					if (this.world.isSolid(x, y, z)) return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	applyVerticalMotion(dt) {
