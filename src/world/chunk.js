@@ -46,6 +46,7 @@ export class Chunk {
 		this.chunkZ = chunkZ;
 		this.blocks = new Uint16Array(SX * SY * SZ);
 		this.mesh = null;
+		this.multiMaterial = null;
 	}
 
 	index(x, y, z) {
@@ -66,11 +67,19 @@ export class Chunk {
 		return { x: this.chunkX * SX, y: this.chunkY * SY, z: this.chunkZ * SZ };
 	}
 
-	rebuildMesh() {
+	disposeMesh() {
 		if (this.mesh) {
 			this.mesh.dispose(false, false);
 			this.mesh = null;
 		}
+		if (this.multiMaterial) {
+			this.multiMaterial.dispose(false, false);
+			this.multiMaterial = null;
+		}
+	}
+
+	rebuildMesh() {
+		this.disposeMesh();
 
 		const origin = this.worldOrigin();
 		const groups = new Map();
@@ -118,7 +127,10 @@ export class Chunk {
 			}
 		}
 
-		if (totalFaces === 0) return;
+		if (totalFaces === 0) {
+			if (!this.world.generating) this.scene.metadata?.iftRefreshShadowCasters?.();
+			return;
+		}
 
 		const positions = [];
 		const indices = [];
@@ -155,6 +167,7 @@ export class Chunk {
 			const multiMaterial = new BABYLON.MultiMaterial(`chunk-material-${this.chunkX}-${this.chunkY}-${this.chunkZ}`, this.scene);
 			multiMaterial.subMaterials = materialGroups.map(group => getBlockMaterial(this.scene, group.blockId));
 			mesh.material = multiMaterial;
+			this.multiMaterial = multiMaterial;
 			mesh.subMeshes = [];
 			materialGroups.forEach((group, materialIndex) => {
 				new BABYLON.SubMesh(materialIndex, group.vertexOffset, group.vertexCount, group.indexOffset, group.indexCount, mesh);
