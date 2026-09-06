@@ -1,5 +1,5 @@
-import { WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=geometry-lighting-14';
+import { WORLD_CONFIG } from '../config.js?v=bug-sweep-15';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=bug-sweep-15';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
