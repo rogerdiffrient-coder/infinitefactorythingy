@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG } from '../config.js?v=lighting-rebalance-2';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=local-shadows-5';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -39,15 +39,15 @@ function createCelestialMaterial(scene, name, texturePath) {
 
 function createStableShadowGenerator(light) {
 	const generator = new BABYLON.ShadowGenerator(2048, light);
-	generator.bias = 0.0035;
-	generator.normalBias = 0.08;
+	generator.bias = 0.005;
+	generator.normalBias = 0.12;
 	generator.forceBackFacesOnly = true;
 	generator.usePercentageCloserFiltering = true;
 	generator.transparencyShadow = false;
-	if (BABYLON.ShadowGenerator.QUALITY_MEDIUM !== undefined) {
-		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+	if (BABYLON.ShadowGenerator.QUALITY_HIGH !== undefined) {
+		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_HIGH;
 	}
-	generator.setDarkness?.(0.42);
+	generator.setDarkness?.(0.28);
 	return generator;
 }
 
@@ -56,6 +56,8 @@ export class DayNightCycle {
 		this.scene = scene;
 		this.elapsed = DAYLIGHT_CONFIG.START_TIME_SECONDS;
 		this.occluded = false;
+		this.lastShadowChunkX = null;
+		this.lastShadowChunkZ = null;
 
 		this.daySky = new BABYLON.Color3(0.42, 0.72, 0.96);
 		this.twilightSky = new BABYLON.Color3(0.76, 0.46, 0.32);
@@ -78,7 +80,7 @@ export class DayNightCycle {
 		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
 		this.sunLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
 		this.sunLight.specular = BABYLON.Color3.Black();
-		this.sunLight.shadowFrustumSize = 72;
+		this.sunLight.shadowFrustumSize = 48;
 		this.sunLight.autoCalcShadowZBounds = true;
 
 		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
@@ -111,14 +113,42 @@ export class DayNightCycle {
 	reset() {
 		this.elapsed = DAYLIGHT_CONFIG.START_TIME_SECONDS;
 		this.occluded = false;
+		this.lastShadowChunkX = null;
+		this.lastShadowChunkZ = null;
 	}
 
 	setOccluded(occluded) {
 		this.occluded = Boolean(occluded);
 	}
 
+	updateShadowCasters(center) {
+		const chunkSizeX = WORLD_CONFIG.CHUNK_SIZE_X;
+		const chunkSizeZ = WORLD_CONFIG.CHUNK_SIZE_Z;
+		const playerChunkX = Math.floor(center.x / chunkSizeX);
+		const playerChunkZ = Math.floor(center.z / chunkSizeZ);
+
+		if (playerChunkX === this.lastShadowChunkX && playerChunkZ === this.lastShadowChunkZ) return;
+		this.lastShadowChunkX = playerChunkX;
+		this.lastShadowChunkZ = playerChunkZ;
+
+		const renderList = [];
+		for (const mesh of this.scene.meshes) {
+			if (!mesh.metadata?.isVoxelChunk) continue;
+			const chunk = mesh.metadata.chunk;
+			if (!chunk) continue;
+			const dx = Math.abs(chunk.chunkX - playerChunkX);
+			const dz = Math.abs(chunk.chunkZ - playerChunkZ);
+			if (dx <= 2 && dz <= 2) renderList.push(mesh);
+		}
+
+		const shadowMap = this.shadowGenerator.getShadowMap?.();
+		if (shadowMap) shadowMap.renderList = renderList;
+	}
+
 	update(dt, center = BABYLON.Vector3.Zero()) {
 		this.elapsed = (this.elapsed + dt) % DAYLIGHT_CONFIG.CYCLE_SECONDS;
+		this.updateShadowCasters(center);
+
 		const isDay = this.elapsed < DAYLIGHT_CONFIG.DAY_SECONDS;
 		const phaseSeconds = isDay ? this.elapsed : this.elapsed - DAYLIGHT_CONFIG.DAY_SECONDS;
 		const phaseDuration = isDay ? DAYLIGHT_CONFIG.DAY_SECONDS : DAYLIGHT_CONFIG.NIGHT_SECONDS;
