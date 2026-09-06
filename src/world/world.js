@@ -1,7 +1,7 @@
-import { WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
-import { BLOCKS, getBlockDefinition } from './blockRegistry.js?v=geometry-lighting-14';
-import { Chunk } from './chunk.js?v=geometry-lighting-14';
-import { TerrainGenerator } from './terrainGenerator.js';
+import { WORLD_CONFIG } from '../config.js?v=bug-sweep-15';
+import { BLOCKS, getBlockDefinition } from './blockRegistry.js?v=bug-sweep-15';
+import { Chunk } from './chunk.js?v=bug-sweep-15';
+import { TerrainGenerator } from './terrainGenerator.js?v=bug-sweep-15';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
