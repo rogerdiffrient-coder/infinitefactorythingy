@@ -50,7 +50,7 @@ world.createStarterWorld();
 const player = new PlayerController(scene, canvas, input);
 player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
 player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
-player.spawn(0.5, WORLD_CONFIG.STARTER_GROUND_HEIGHT + 0.002, 0.5);
+player.spawnOnSurface(0.5, 0.5, WORLD_CONFIG.CHUNK_SIZE_Y * 2);
 
 const stats = world.getChunkStats();
 bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
