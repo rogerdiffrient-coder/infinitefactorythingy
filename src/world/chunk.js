@@ -21,8 +21,8 @@ const UV_ROTATIONS = [
 	[1, 1, 0, 1, 0, 0, 1, 0]
 ];
 
-function hashRotation(x, y, z, faceIndex) {
-	let h = WORLD_CONFIG.SEED | 0;
+function hashRotation(seed, x, y, z, faceIndex) {
+	let h = seed | 0;
 	h ^= Math.imul(x | 0, 0x27d4eb2d);
 	h ^= Math.imul(y | 0, 0x165667b1);
 	h ^= Math.imul(z | 0, 0x1b873593);
@@ -63,11 +63,7 @@ export class Chunk {
 	}
 
 	worldOrigin() {
-		return {
-			x: this.chunkX * SX,
-			y: this.chunkY * SY,
-			z: this.chunkZ * SZ
-		};
+		return { x: this.chunkX * SX, y: this.chunkY * SY, z: this.chunkZ * SZ };
 	}
 
 	rebuildMesh() {
@@ -101,20 +97,9 @@ export class Chunk {
 						const [dx, dy, dz] = face.dir;
 						if (this.world.getBlock(worldX + dx, worldY + dy, worldZ + dz) !== BLOCKS.AIR) continue;
 
-						for (const [vx, vy, vz] of face.vertices) {
-							group.positions.push(x + vx, y + vy, z + vz);
-						}
-
-						const rotation = hashRotation(worldX, worldY, worldZ, faceIndex);
-						group.uvs.push(...UV_ROTATIONS[rotation]);
-						group.indices.push(
-							group.vertexBase,
-							group.vertexBase + 1,
-							group.vertexBase + 2,
-							group.vertexBase,
-							group.vertexBase + 2,
-							group.vertexBase + 3
-						);
+						for (const [vx, vy, vz] of face.vertices) group.positions.push(x + vx, y + vy, z + vz);
+						group.uvs.push(...UV_ROTATIONS[hashRotation(this.world.seed, worldX, worldY, worldZ, faceIndex)]);
+						group.indices.push(group.vertexBase, group.vertexBase + 1, group.vertexBase + 2, group.vertexBase, group.vertexBase + 2, group.vertexBase + 3);
 						group.vertexBase += 4;
 						group.faces++;
 						totalFaces++;
@@ -145,7 +130,6 @@ export class Chunk {
 		}
 
 		BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-
 		const mesh = new BABYLON.Mesh(`chunk-${this.chunkX}-${this.chunkY}-${this.chunkZ}`, this.scene);
 		const vertexData = new BABYLON.VertexData();
 		vertexData.positions = positions;
@@ -153,7 +137,6 @@ export class Chunk {
 		vertexData.uvs = uvs;
 		vertexData.normals = normals;
 		vertexData.applyToMesh(mesh, true);
-
 		mesh.position.set(origin.x, origin.y, origin.z);
 
 		if (materialGroups.length === 1) {
@@ -164,24 +147,13 @@ export class Chunk {
 			mesh.material = multiMaterial;
 			mesh.subMeshes = [];
 			materialGroups.forEach((group, materialIndex) => {
-				new BABYLON.SubMesh(
-					materialIndex,
-					group.vertexOffset,
-					group.vertexCount,
-					group.indexOffset,
-					group.indexCount,
-					mesh
-				);
+				new BABYLON.SubMesh(materialIndex, group.vertexOffset, group.vertexCount, group.indexOffset, group.indexCount, mesh);
 			});
 		}
 
 		mesh.checkCollisions = true;
 		mesh.isPickable = true;
-		mesh.metadata = {
-			isVoxelChunk: true,
-			chunk: this,
-			faceCount: totalFaces
-		};
+		mesh.metadata = { isVoxelChunk: true, chunk: this, faceCount: totalFaces };
 		mesh.freezeWorldMatrix();
 		mesh.freezeNormals();
 		this.mesh = mesh;
