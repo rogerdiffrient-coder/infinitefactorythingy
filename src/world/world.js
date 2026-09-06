@@ -1,6 +1,6 @@
 import { WORLD_CONFIG } from '../config.js?v=terrain-restore-9';
 import { BLOCKS, getBlockDefinition } from './blockRegistry.js?v=terrain-restore-9';
-import { Chunk } from './chunk.js?v=terrain-restore-9';
+import { Chunk } from './chunk.js?v=normals-13';
 import { TerrainGenerator } from './terrainGenerator.js';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
