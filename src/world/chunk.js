@@ -14,6 +14,25 @@ const FACE_DEFINITIONS = [
 	{ dir: [0, 0, -1], vertices: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]] }
 ];
 
+const UV_ROTATIONS = [
+	[0, 1, 0, 0, 1, 0, 1, 1],
+	[0, 0, 1, 0, 1, 1, 0, 1],
+	[1, 0, 1, 1, 0, 1, 0, 0],
+	[1, 1, 0, 1, 0, 0, 1, 0]
+];
+
+function hashRotation(x, y, z, faceIndex) {
+	let h = WORLD_CONFIG.SEED | 0;
+	h ^= Math.imul(x | 0, 0x27d4eb2d);
+	h ^= Math.imul(y | 0, 0x165667b1);
+	h ^= Math.imul(z | 0, 0x1b873593);
+	h ^= Math.imul(faceIndex + 1, 0x85ebca6b);
+	h ^= h >>> 16;
+	h = Math.imul(h, 0x7feb352d);
+	h ^= h >>> 15;
+	return (h >>> 0) & 3;
+}
+
 function createGroup() {
 	return { positions: [], indices: [], uvs: [], vertexBase: 0, faces: 0 };
 }
@@ -77,14 +96,17 @@ export class Chunk {
 					const worldY = origin.y + y;
 					const worldZ = origin.z + z;
 
-					for (const face of FACE_DEFINITIONS) {
+					for (let faceIndex = 0; faceIndex < FACE_DEFINITIONS.length; faceIndex++) {
+						const face = FACE_DEFINITIONS[faceIndex];
 						const [dx, dy, dz] = face.dir;
 						if (this.world.getBlock(worldX + dx, worldY + dy, worldZ + dz) !== BLOCKS.AIR) continue;
 
 						for (const [vx, vy, vz] of face.vertices) {
 							group.positions.push(x + vx, y + vy, z + vz);
 						}
-						group.uvs.push(0, 1, 0, 0, 1, 0, 1, 1);
+
+						const rotation = hashRotation(worldX, worldY, worldZ, faceIndex);
+						group.uvs.push(...UV_ROTATIONS[rotation]);
 						group.indices.push(
 							group.vertexBase,
 							group.vertexBase + 1,
