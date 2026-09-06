@@ -2,7 +2,9 @@ import { WORLD_CONFIG } from '../config.js';
 
 export const BLOCKS = Object.freeze({
 	AIR: 0,
-	GRASS: 1
+	GRASS: 1,
+	DIRT: 2,
+	STONE: 3
 });
 
 export const BLOCK_DEFINITIONS = Object.freeze({
@@ -10,6 +12,18 @@ export const BLOCK_DEFINITIONS = Object.freeze({
 		id: BLOCKS.GRASS,
 		name: 'Grass Block',
 		texture: 'Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png',
+		solid: true
+	},
+	[BLOCKS.DIRT]: {
+		id: BLOCKS.DIRT,
+		name: 'Dirt Block',
+		texture: 'Assets/Blocks/Terrain/Dirt-Block/dirt-all-faces.png',
+		solid: true
+	},
+	[BLOCKS.STONE]: {
+		id: BLOCKS.STONE,
+		name: 'Stone Block',
+		texture: 'Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png',
 		solid: true
 	}
 });
