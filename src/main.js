@@ -1,0 +1,139 @@
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js';
+import { InputState } from './input/input.js';
+import { getBlockDefinition } from './world/blockRegistry.js';
+import { VoxelWorld } from './world/world.js';
+import { PlayerController } from './player/playerController.js';
+
+const canvas = document.querySelector('#renderCanvas');
+const boot = document.querySelector('#boot');
+const bootStatus = document.querySelector('#bootStatus');
+const playButton = document.querySelector('#playButton');
+const hud = document.querySelector('#hud');
+const debug = document.querySelector('#debug');
+const target = document.querySelector('#target');
+
+if (!window.BABYLON) {
+	bootStatus.textContent = 'Babylon.js failed to load.';
+	throw new Error('Babylon.js is unavailable.');
+}
+
+const engine = new BABYLON.Engine(canvas, true, {
+	preserveDrawingBuffer: false,
+	stencil: true,
+	disableWebGL2Support: false
+});
+engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+
+const scene = new BABYLON.Scene(engine);
+scene.collisionsEnabled = true;
+scene.clearColor = new BABYLON.Color4(...RENDER_CONFIG.CLEAR_COLOR);
+scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+scene.fogDensity = RENDER_CONFIG.FOG_DENSITY;
+scene.fogColor = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
+scene.ambientColor = new BABYLON.Color3(0.35, 0.4, 0.46);
+
+const hemisphericLight = new BABYLON.HemisphericLight('sky-light', new BABYLON.Vector3(0.25, 1, 0.15), scene);
+hemisphericLight.intensity = 0.78;
+hemisphericLight.diffuse = new BABYLON.Color3(0.72, 0.84, 1);
+hemisphericLight.groundColor = new BABYLON.Color3(0.17, 0.2, 0.26);
+
+const sunLight = new BABYLON.DirectionalLight('sun-light', new BABYLON.Vector3(-0.55, -1, 0.35), scene);
+sunLight.intensity = 0.52;
+sunLight.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
+
+const input = new InputState();
+const world = new VoxelWorld(scene);
+bootStatus.textContent = 'Generating 16×16×16 voxel chunks…';
+world.createStarterWorld();
+
+const player = new PlayerController(scene, canvas, input);
+player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
+player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
+player.spawn(0.5, WORLD_CONFIG.STARTER_GROUND_HEIGHT + 0.002, 0.5);
+
+const stats = world.getChunkStats();
+bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
+
+function lockPointer() {
+	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
+}
+
+playButton.addEventListener('click', () => {
+	boot.classList.add('hidden');
+	hud.classList.remove('hidden');
+	lockPointer();
+});
+
+canvas.addEventListener('click', () => {
+	if (boot.classList.contains('hidden')) lockPointer();
+});
+
+document.addEventListener('pointerlockchange', () => {
+	if (document.pointerLockElement === canvas) return;
+	if (!boot.classList.contains('hidden')) return;
+	boot.classList.remove('hidden');
+	bootStatus.textContent = 'Paused · click ENTER WORLD to recapture the mouse';
+	playButton.textContent = 'RETURN TO WORLD';
+});
+
+let lastTime = performance.now();
+let debugTimer = 0;
+
+function updateTarget() {
+	const hit = player.pickTarget();
+	if (!hit?.hit || !hit.pickedPoint || !hit.getNormal) {
+		target.textContent = 'AIR';
+		return;
+	}
+
+	const normal = hit.getNormal(true) ?? BABYLON.Vector3.Zero();
+	const insidePoint = hit.pickedPoint.subtract(normal.scale(0.001));
+	const x = Math.floor(insidePoint.x);
+	const y = Math.floor(insidePoint.y);
+	const z = Math.floor(insidePoint.z);
+	const blockId = world.getBlock(x, y, z);
+	const definition = getBlockDefinition(blockId);
+	target.textContent = definition ? `${definition.name} · ${x}, ${y}, ${z}` : 'AIR';
+}
+
+function updateDebug(dt) {
+	debugTimer += dt;
+	if (debugTimer < 0.12) return;
+	debugTimer = 0;
+
+	const position = player.getPosition();
+	const chunkStats = world.getChunkStats();
+	debug.textContent = [
+		`${engine.getFps().toFixed(0)} FPS`,
+		`XYZ ${position.x.toFixed(2)} / ${position.y.toFixed(2)} / ${position.z.toFixed(2)}`,
+		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
+		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
+		`REACH ${PLAYER_CONFIG.MAX_REACH.toFixed(1)}m`,
+		`CHUNKS ${chunkStats.chunks} · FACES ${chunkStats.faces}`
+	].join('\n');
+}
+
+engine.runRenderLoop(() => {
+	const now = performance.now();
+	const dt = Math.min((now - lastTime) / 1000, 0.05);
+	lastTime = now;
+
+	if (document.pointerLockElement === canvas) {
+		player.update(dt);
+		updateTarget();
+		updateDebug(dt);
+	}
+
+	input.endFrame();
+	scene.render();
+});
+
+window.addEventListener('resize', () => engine.resize());
+
+console.info('[IFT] 3D voxel prototype loaded', {
+	blockSize: WORLD_CONFIG.BLOCK_SIZE,
+	chunkSize: [WORLD_CONFIG.CHUNK_SIZE_X, WORLD_CONFIG.CHUNK_SIZE_Y, WORLD_CONFIG.CHUNK_SIZE_Z],
+	walkSpeed: PLAYER_CONFIG.WALK_SPEED,
+	sprintSpeed: PLAYER_CONFIG.SPRINT_SPEED,
+	reach: PLAYER_CONFIG.MAX_REACH
+});
