@@ -1,6 +1,6 @@
 import { WORLD_CONFIG } from '../config.js?v=lighting-rebalance-2';
 import { BLOCKS, getBlockDefinition } from './blockRegistry.js?v=lighting-rebalance-2';
-import { Chunk } from './chunk.js?v=lighting-rebalance-2';
+import { Chunk } from './chunk.js?v=real-shadows-4';
 import { TerrainGenerator } from './terrainGenerator.js';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
