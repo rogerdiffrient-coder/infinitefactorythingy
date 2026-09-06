@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=cascaded-shadows-6';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=shadow-balance-7';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -46,7 +46,7 @@ function createCascadedShadowGenerator(light) {
 	generator.depthClamp = true;
 	generator.autoCalcDepthBounds = true;
 	generator.shadowMaxZ = 64;
-	generator.cascadeBlendPercentage = 0.08;
+	generator.cascadeBlendPercentage = 0.1;
 	generator.bias = 0.0015;
 	generator.normalBias = 0.035;
 	generator.forceBackFacesOnly = true;
@@ -54,7 +54,7 @@ function createCascadedShadowGenerator(light) {
 	if (BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
 		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
 	}
-	generator.setDarkness?.(0.32);
+	generator.setDarkness?.(0.18);
 	return generator;
 }
 
@@ -72,12 +72,12 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		this.daySkyLight = new BABYLON.Color3(0.78, 0.82, 0.88);
-		this.dayGroundLight = new BABYLON.Color3(0.48, 0.5, 0.54);
-		this.twilightSkyLight = new BABYLON.Color3(0.67, 0.56, 0.5);
-		this.twilightGroundLight = new BABYLON.Color3(0.34, 0.3, 0.3);
-		this.nightSkyLight = new BABYLON.Color3(0.24, 0.31, 0.5);
-		this.nightGroundLight = new BABYLON.Color3(0.08, 0.1, 0.16);
+		this.daySkyLight = new BABYLON.Color3(0.96, 0.98, 1.0);
+		this.dayGroundLight = new BABYLON.Color3(0.68, 0.7, 0.74);
+		this.twilightSkyLight = new BABYLON.Color3(0.78, 0.69, 0.62);
+		this.twilightGroundLight = new BABYLON.Color3(0.45, 0.4, 0.39);
+		this.nightSkyLight = new BABYLON.Color3(0.28, 0.36, 0.56);
+		this.nightGroundLight = new BABYLON.Color3(0.11, 0.13, 0.2);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
