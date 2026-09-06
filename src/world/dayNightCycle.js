@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=bug-sweep-15';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
