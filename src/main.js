@@ -198,6 +198,11 @@ document.addEventListener('pointerlockchange', () => {
 	playButton.textContent = 'RETURN TO WORLD';
 });
 
+document.addEventListener('visibilitychange', () => {
+	if (document.visibilityState === 'hidden') world?.flushSave?.();
+});
+window.addEventListener('pagehide', () => world?.flushSave?.());
+
 function updateTarget() {
 	if (!player || !world) return;
 	const hit = player.pickTarget();
