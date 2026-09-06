@@ -1,6 +1,6 @@
 import { BLOCKS, getBlockDefinition } from './blockRegistry.js';
 
-const SELECTABLE_BLOCKS = [BLOCKS.GRASS, BLOCKS.DIRT, BLOCKS.STONE];
+const SELECTABLE_BLOCKS = [BLOCKS.GRASS, BLOCKS.DIRT, BLOCKS.DIRT_STONE_MIX, BLOCKS.STONE];
 
 export class BlockInteraction {
 	constructor(canvas, player, world, hotbar, selectedBlockName) {
@@ -35,6 +35,7 @@ export class BlockInteraction {
 		if (event.code === 'Digit1') this.selectIndex(0);
 		if (event.code === 'Digit2') this.selectIndex(1);
 		if (event.code === 'Digit3') this.selectIndex(2);
+		if (event.code === 'Digit4') this.selectIndex(3);
 	}
 
 	onWheel(event) {
