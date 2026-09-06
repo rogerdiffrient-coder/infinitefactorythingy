@@ -1,4 +1,4 @@
-import { WORLD_CONFIG } from '../config.js';
+import { WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
 
 export const BLOCKS = Object.freeze({
 	AIR: 0,
@@ -52,10 +52,7 @@ export function getBlockMaterial(scene, id) {
 	material.specularColor = BABYLON.Color3.Black();
 	material.ambientColor = BABYLON.Color3.Black();
 	material.emissiveColor = BABYLON.Color3.Black();
-	// Keep both sides visible until the chunk mesh winding is rebuilt to match
-	// Babylon's front-face convention. Enabling culling with the current mesh
-	// removes valid terrain faces.
-	material.backFaceCulling = false;
+	material.backFaceCulling = true;
 	material.twoSidedLighting = false;
 	material.useVertexColors = false;
 
