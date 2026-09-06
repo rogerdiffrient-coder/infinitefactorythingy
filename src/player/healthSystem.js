@@ -1,8 +1,8 @@
 import { HEALTH_CONFIG } from '../config.js';
 
-const HEART_FULL = 'Assets/UI/Health/Hearts/heart-full.png';
-const HEART_HALF = 'Assets/UI/Health/Hearts/heart-half.png';
-const HEART_EMPTY = 'Assets/UI/Health/Hearts/heart-empty.png';
+const HEART_FULL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAhElEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWcF1fim4Bk0Ghv8whfjkUBSI+LpAbNi8h6DTNT8+Y3jz5gUjE7oEMZqRAYoBpGqGG/DmzQtGzY/PiNYEcz6GC8gBcAOIdQWy7RguIGQIumYMA/AZgk0zVgOwGYJLM0EgIiLxHzkJD1MAAMJQVSWuMrWxAAAAAElFTkSuQmCC';
+const HEART_HALF = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAlElEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWcF1fim4Bk0Ghv8whSIiEv/VNHUQpl1HyDEiaxbxdYHYsHkPXK2/lBBWp9+6foXhzZsXjEzoEsiaiQEoBpCqGW7AmzcvGDU/PiNaE8z5GC4gB8ANINYVyLZjuICQIeiaMQzAZwg2zVgNwGYILs0EgYiIxH/kJDxMAQCwRVjn1WzHpwAAAABJRU5ErkJggg==';
+const HEART_EMPTY = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAcklEQVR4nGNgoBAwInNERCT+w9hv3rwgSo4FWYGapg5Cx3WG/zCF+OSwKyAC3Lp+heHNmxeMTCTpwgKoY8CbNy8Yb12/QrQmmPOp5wJSXIFsO4YLCBmCrhnDAHyGYNOM1QBshuDSTBCIiEj8R07CwxQAAHEqUvOgBYb1AAAAAElFTkSuQmCC';
 
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
@@ -30,24 +30,21 @@ export class HealthSystem {
 			const slot = document.createElement('span');
 			slot.className = 'heart-slot';
 
-			const empty = document.createElement('img');
-			empty.className = 'heart-base';
-			empty.src = HEART_EMPTY;
-			empty.alt = '';
-			empty.draggable = false;
+			const empty = document.createElement('span');
+			empty.className = 'heart-image heart-base';
+			empty.style.backgroundImage = `url("${HEART_EMPTY}")`;
 
 			const fill = document.createElement('span');
 			fill.className = 'heart-fill';
 
-			const full = document.createElement('img');
-			full.src = HEART_FULL;
-			full.alt = '';
-			full.draggable = false;
+			const full = document.createElement('span');
+			full.className = 'heart-image heart-front';
+			full.style.backgroundImage = `url("${HEART_FULL}")`;
 			fill.append(full);
 
 			slot.append(empty, fill);
 			this.healthBar.append(slot);
-			this.heartSlots.push({ slot, fill, full });
+			this.heartSlots.push({ fill, full });
 		}
 	}
 
@@ -123,10 +120,10 @@ export class HealthSystem {
 			const slot = this.heartSlots[i];
 
 			if (heartHealth === 1) {
-				slot.full.src = HEART_HALF;
+				slot.full.style.backgroundImage = `url("${HEART_HALF}")`;
 				slot.fill.style.width = '100%';
 			} else {
-				slot.full.src = HEART_FULL;
+				slot.full.style.backgroundImage = `url("${HEART_FULL}")`;
 				slot.fill.style.width = `${heartHealth / 2 * 100}%`;
 			}
 		}
