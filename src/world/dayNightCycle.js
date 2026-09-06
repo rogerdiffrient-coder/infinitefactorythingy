@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=daylight-fill-10';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=outdoor-lighting-11';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -54,7 +54,7 @@ function createCascadedShadowGenerator(light) {
 	if (BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
 		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
 	}
-	generator.setDarkness?.(0.1);
+	generator.setDarkness?.(0.08);
 	return generator;
 }
 
@@ -77,12 +77,14 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		this.daySkyLight = new BABYLON.Color3(0.97, 0.985, 1.0);
-		this.dayGroundLight = new BABYLON.Color3(0.62, 0.64, 0.67);
-		this.twilightSkyLight = new BABYLON.Color3(0.8, 0.72, 0.66);
-		this.twilightGroundLight = new BABYLON.Color3(0.42, 0.39, 0.39);
-		this.nightSkyLight = new BABYLON.Color3(0.26, 0.34, 0.54);
-		this.nightGroundLight = new BABYLON.Color3(0.09, 0.11, 0.17);
+		// Bright sky, intentionally weak ground bounce. A vertical wall gets a
+		// moderate amount of indirect light instead of nearly the same fill as a top face.
+		this.daySkyLight = new BABYLON.Color3(0.94, 0.97, 1.0);
+		this.dayGroundLight = new BABYLON.Color3(0.14, 0.16, 0.18);
+		this.twilightSkyLight = new BABYLON.Color3(0.74, 0.66, 0.6);
+		this.twilightGroundLight = new BABYLON.Color3(0.12, 0.1, 0.11);
+		this.nightSkyLight = new BABYLON.Color3(0.25, 0.33, 0.52);
+		this.nightGroundLight = new BABYLON.Color3(0.025, 0.035, 0.06);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
@@ -90,7 +92,7 @@ export class DayNightCycle {
 		this.ambientLight.specular = BABYLON.Color3.Black();
 
 		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
-		this.sunLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
+		this.sunLight.diffuse = new BABYLON.Color3(1, 0.985, 0.95);
 		this.sunLight.specular = BABYLON.Color3.Black();
 
 		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
@@ -192,9 +194,10 @@ export class DayNightCycle {
 		const angle = progress * Math.PI;
 		const altitude = Math.max(0, Math.sin(angle));
 		const radius = DAYLIGHT_CONFIG.SKY_RADIUS;
-		const x = Math.cos(angle) * radius;
+		const horizon = Math.cos(angle) * radius;
+		const x = horizon * 0.82;
 		const y = Math.sin(angle) * radius;
-		const z = 0;
+		const z = horizon * 0.57;
 		const lightMultiplier = this.occluded ? 0.02 : 1;
 
 		if (isDay) {
