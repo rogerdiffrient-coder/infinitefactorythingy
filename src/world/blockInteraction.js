@@ -15,21 +15,33 @@ export class BlockInteraction {
 		canvas.addEventListener('contextmenu', event => event.preventDefault());
 		canvas.addEventListener('wheel', event => this.onWheel(event), { passive: false });
 		canvas.addEventListener('mousedown', event => this.onMouseDown(event));
+		window.addEventListener('keydown', event => this.onKeyDown(event));
 		this.renderSelection();
+	}
+
+	onKeyDown(event) {
+		if (event.code === 'Digit1') this.selectIndex(0);
+		if (event.code === 'Digit2') this.selectIndex(1);
+		if (event.code === 'Digit3') this.selectIndex(2);
 	}
 
 	onWheel(event) {
 		if (document.pointerLockElement !== this.canvas) return;
 		event.preventDefault();
 		const direction = event.deltaY > 0 ? 1 : -1;
-		this.selectedIndex = (this.selectedIndex + direction + SELECTABLE_BLOCKS.length) % SELECTABLE_BLOCKS.length;
-		this.renderSelection();
+		this.selectIndex((this.selectedIndex + direction + SELECTABLE_BLOCKS.length) % SELECTABLE_BLOCKS.length);
 	}
 
 	onMouseDown(event) {
 		if (document.pointerLockElement !== this.canvas) return;
 		if (event.button === 0) this.breakTarget();
 		if (event.button === 2) this.placeTarget();
+	}
+
+	selectIndex(index) {
+		if (index < 0 || index >= SELECTABLE_BLOCKS.length) return;
+		this.selectedIndex = index;
+		this.renderSelection();
 	}
 
 	getTargetCells() {
