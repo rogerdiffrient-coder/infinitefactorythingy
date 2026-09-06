@@ -1,4 +1,4 @@
-import { WORLD_CONFIG } from '../config.js?v=geometry-lighting-14';
+import { WORLD_CONFIG } from '../config.js?v=bug-sweep-15';
 
 export const BLOCKS = Object.freeze({
 	AIR: 0,
