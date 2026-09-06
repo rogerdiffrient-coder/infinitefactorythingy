@@ -4,24 +4,36 @@ function readStore() {
 	try {
 		const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"worlds":[]}');
 		return Array.isArray(parsed.worlds) ? parsed : { worlds: [] };
-	} catch {
+	} catch (error) {
+		console.warn('[IFT] Could not read world storage.', error);
 		return { worlds: [] };
 	}
 }
 
 function writeStore(store) {
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+		return true;
+	} catch (error) {
+		console.warn('[IFT] Could not save world storage.', error);
+		return false;
+	}
 }
 
 function makeId() {
-	if (crypto?.randomUUID) return crypto.randomUUID();
+	const cryptoApi = globalThis.crypto;
+	if (cryptoApi?.randomUUID) return cryptoApi.randomUUID();
 	return `world-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function randomSeed() {
-	const values = new Uint32Array(1);
-	crypto.getRandomValues(values);
-	return values[0] | 0;
+	const cryptoApi = globalThis.crypto;
+	if (cryptoApi?.getRandomValues) {
+		const values = new Uint32Array(1);
+		cryptoApi.getRandomValues(values);
+		return values[0] | 0;
+	}
+	return (Math.random() * 0x100000000) | 0;
 }
 
 export class WorldManager {
