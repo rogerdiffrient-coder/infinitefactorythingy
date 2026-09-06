@@ -9,32 +9,76 @@
 <body>
 	<canvas id="renderCanvas"></canvas>
 
+	<div id="titleScreen" class="title-screen">
+		<div class="title-shell">
+			<header class="title-header">
+				<div class="title-kicker">INFINITE FACTORY THINGY</div>
+				<h1>BUILD SOMETHING RIDICULOUS.</h1>
+				<p>Create worlds, come back later, and eventually cover them in an unreasonable amount of machinery.</p>
+			</header>
+
+			<div class="title-actions">
+				<button id="newWorldButton" class="primary-title-button" type="button">CREATE NEW WORLD</button>
+			</div>
+
+			<section class="world-browser" aria-label="Worlds">
+				<div class="world-browser-heading">
+					<h2>Your Worlds</h2>
+					<span>Stored locally in this browser</span>
+				</div>
+				<div id="emptyWorlds" class="empty-worlds">No worlds yet. Time to make one.</div>
+				<div id="worldList" class="world-list"></div>
+			</section>
+		</div>
+
+		<div id="createWorldPanel" class="create-world-panel hidden" role="dialog" aria-modal="true" aria-labelledby="createWorldTitle">
+			<div class="create-world-card">
+				<div class="title-kicker">NEW WORLD</div>
+				<h2 id="createWorldTitle">Generate a factory world</h2>
+				<label>
+					<span>World name</span>
+					<input id="worldNameInput" maxlength="48" autocomplete="off" placeholder="My Extremely Normal Factory">
+				</label>
+				<label>
+					<span>Seed</span>
+					<div class="seed-row">
+						<input id="seedInput" inputmode="numeric" autocomplete="off" placeholder="Random">
+						<button id="randomSeedButton" type="button">RANDOMIZE</button>
+					</div>
+				</label>
+				<div class="create-world-actions">
+					<button id="cancelCreateWorld" type="button">CANCEL</button>
+					<button id="confirmCreateWorld" class="primary-title-button" type="button">CREATE WORLD</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<div id="hud" class="hud hidden">
 		<div id="healthBar" class="health-bar" aria-label="Health"></div>
 		<div id="damageFlash" class="damage-flash" aria-hidden="true"></div>
 		<div id="suffocationShade" class="suffocation-shade" aria-hidden="true"></div>
 		<div id="hotbar" class="hotbar" aria-label="Selected block">
-			<div class="hotbar-slot selected" data-block-id="1"><img src="Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png" alt="Grass Block"></div>
-			<div class="hotbar-slot" data-block-id="2"><img src="Assets/Blocks/Terrain/Dirt-Block/dirt-all-faces.png" alt="Dirt Block"></div>
-			<div class="hotbar-slot" data-block-id="3"><img src="Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png" alt="Stone Block"></div>
+			<div class="hotbar-slot selected" data-block-id="1"><kbd>1</kbd><img src="Assets/Blocks/Terrain/Grass-Block/grass-all-faces.png" alt="Grass Block"></div>
+			<div class="hotbar-slot" data-block-id="2"><kbd>2</kbd><img src="Assets/Blocks/Terrain/Dirt-Block/dirt-all-faces.png" alt="Dirt Block"></div>
+			<div class="hotbar-slot" data-block-id="3"><kbd>3</kbd><img src="Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png" alt="Stone Block"></div>
 			<div id="selectedBlockName" class="selected-block-name">Grass Block</div>
 		</div>
 		<div id="devLeft" class="dev-left hidden">
 			<div class="brand">INFINITE FACTORY THINGY <span>3D PROTOTYPE</span></div>
-			<div class="controls">WASD move · Ctrl sprint · Shift sneak · Space jump · LMB break · RMB place · Wheel select · Esc unlock mouse</div>
+			<div class="controls">WASD move · Ctrl sprint · Shift sneak · Hold Space jump · 1/2/3 or Wheel select · LMB break · RMB place · Esc pause</div>
 		</div>
 		<div id="debug" class="debug hidden"></div>
 		<div class="crosshair" aria-hidden="true"></div>
 		<div id="target" class="target">AIR</div>
 	</div>
 
-	<div id="boot" class="boot">
+	<div id="boot" class="boot hidden">
 		<div class="boot-card">
 			<div class="eyebrow">INFINITE FACTORY THINGY</div>
-			<h1>THE FACTORY IS NOW 3D.</h1>
-			<p>Voxel chunks, crisp 16×16 textures, proper movement, health, and now actual block interaction.</p>
-			<button id="playButton" type="button">ENTER WORLD</button>
-			<div id="bootStatus">Preparing chunks…</div>
+			<h1>PAUSED</h1>
+			<p id="bootStatus">Click below to jump back into the world.</p>
+			<button id="playButton" type="button">RETURN TO WORLD</button>
 		</div>
 	</div>
 
