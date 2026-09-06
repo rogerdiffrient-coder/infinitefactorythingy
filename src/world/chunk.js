@@ -1,5 +1,5 @@
 import { WORLD_CONFIG } from '../config.js';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=grass-cache-fix-2';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=voxel-face-shading-1';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
@@ -13,6 +13,8 @@ const FACE_DEFINITIONS = [
 	{ dir: [0, 0, 1], vertices: [[1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]] },
 	{ dir: [0, 0, -1], vertices: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]] }
 ];
+
+const FACE_SHADE = [0.72, 0.72, 1.0, 0.5, 0.72, 0.72];
 
 const UV_ROTATIONS = [
 	[0, 1, 0, 0, 1, 0, 1, 1],
@@ -34,7 +36,11 @@ function hashRotation(seed, x, y, z, faceIndex) {
 }
 
 function createGroup() {
-	return { positions: [], indices: [], uvs: [], vertexBase: 0, faces: 0 };
+	return { positions: [], indices: [], uvs: [], colors: [], vertexBase: 0, faces: 0 };
+}
+
+function pushFaceColor(colors, shade) {
+	for (let i = 0; i < 4; i++) colors.push(shade, shade, shade, 1);
 }
 
 export class Chunk {
@@ -99,6 +105,7 @@ export class Chunk {
 
 						for (const [vx, vy, vz] of face.vertices) group.positions.push(x + vx, y + vy, z + vz);
 						group.uvs.push(...UV_ROTATIONS[hashRotation(this.world.seed, worldX, worldY, worldZ, faceIndex)]);
+						pushFaceColor(group.colors, FACE_SHADE[faceIndex]);
 						group.indices.push(group.vertexBase, group.vertexBase + 1, group.vertexBase + 2, group.vertexBase, group.vertexBase + 2, group.vertexBase + 3);
 						group.vertexBase += 4;
 						group.faces++;
@@ -113,6 +120,7 @@ export class Chunk {
 		const positions = [];
 		const indices = [];
 		const uvs = [];
+		const colors = [];
 		const normals = [];
 		const materialGroups = [];
 		let vertexOffset = 0;
@@ -123,6 +131,7 @@ export class Chunk {
 			const indexCount = group.indices.length;
 			positions.push(...group.positions);
 			uvs.push(...group.uvs);
+			colors.push(...group.colors);
 			indices.push(...group.indices.map(index => index + vertexOffset));
 			materialGroups.push({ blockId, vertexOffset, vertexCount, indexOffset, indexCount });
 			vertexOffset += vertexCount;
@@ -135,6 +144,7 @@ export class Chunk {
 		vertexData.positions = positions;
 		vertexData.indices = indices;
 		vertexData.uvs = uvs;
+		vertexData.colors = colors;
 		vertexData.normals = normals;
 		vertexData.applyToMesh(mesh, true);
 		mesh.position.set(origin.x, origin.y, origin.z);
