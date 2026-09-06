@@ -19,6 +19,7 @@ export class BlockInteraction {
 		this.breakProgress = 0;
 		this.breakCellKey = null;
 		this.placeCooldown = 0;
+		this.lastPlaceCellKey = null;
 
 		this.breakIndicator = BABYLON.MeshBuilder.CreateBox('break-progress-box', { size: 1.015 }, world.scene);
 		const breakMaterial = new BABYLON.StandardMaterial('break-progress-material', world.scene);
@@ -68,6 +69,7 @@ export class BlockInteraction {
 		this.placeHeld = false;
 		this.resetBreakProgress();
 		this.placeCooldown = 0;
+		this.lastPlaceCellKey = null;
 	}
 
 	onKeyDown(event) {
@@ -93,6 +95,8 @@ export class BlockInteraction {
 		if (event.button === 2) {
 			this.placeHeld = true;
 			this.placeCooldown = 0;
+			this.lastPlaceCellKey = null;
+			this.tryPlaceImmediately();
 		}
 	}
 
@@ -104,6 +108,7 @@ export class BlockInteraction {
 		if (event.button === 2) {
 			this.placeHeld = false;
 			this.placeCooldown = 0;
+			this.lastPlaceCellKey = null;
 		}
 	}
 
@@ -158,10 +163,44 @@ export class BlockInteraction {
 
 	updatePlacing(dt) {
 		if (!this.placeHeld) return;
+
+		const cells = this.getTargetCells();
+		if (!cells) {
+			this.lastPlaceCellKey = null;
+			this.placeCooldown = 0;
+			return;
+		}
+
+		const { x, y, z } = cells.placeCell;
+		const key = `${x},${y},${z}`;
+
+		if (key !== this.lastPlaceCellKey) {
+			this.lastPlaceCellKey = key;
+			const placed = this.placeCell(x, y, z);
+			this.placeCooldown = placed ? PLACE_REPEAT_SECONDS : 0;
+			return;
+		}
+
 		this.placeCooldown -= dt;
 		if (this.placeCooldown > 0) return;
-		const placed = this.placeTarget();
+		const placed = this.placeCell(x, y, z);
 		this.placeCooldown = placed ? PLACE_REPEAT_SECONDS : PLACE_RETRY_SECONDS;
+	}
+
+	tryPlaceImmediately() {
+		const cells = this.getTargetCells();
+		if (!cells) return false;
+		const { x, y, z } = cells.placeCell;
+		this.lastPlaceCellKey = `${x},${y},${z}`;
+		const placed = this.placeCell(x, y, z);
+		this.placeCooldown = placed ? PLACE_REPEAT_SECONDS : 0;
+		return placed;
+	}
+
+	placeCell(x, y, z) {
+		if (this.world.getBlock(x, y, z) !== BLOCKS.AIR) return false;
+		if (this.player.intersectsBlock(x, y, z)) return false;
+		return this.world.setBlockAndRebuild(x, y, z, SELECTABLE_BLOCKS[this.selectedIndex]);
 	}
 
 	resetBreakProgress() {
@@ -193,9 +232,7 @@ export class BlockInteraction {
 		const cells = this.getTargetCells();
 		if (!cells) return false;
 		const { x, y, z } = cells.placeCell;
-		if (this.world.getBlock(x, y, z) !== BLOCKS.AIR) return false;
-		if (this.player.intersectsBlock(x, y, z)) return false;
-		return this.world.setBlockAndRebuild(x, y, z, SELECTABLE_BLOCKS[this.selectedIndex]);
+		return this.placeCell(x, y, z);
 	}
 
 	renderSelection() {
