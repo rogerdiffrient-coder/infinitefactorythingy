@@ -1,4 +1,4 @@
-import { PLAYER_CONFIG } from '../config.js';
+import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
@@ -15,6 +15,7 @@ export class PlayerController {
 		this.verticalVelocity = 0;
 		this.grounded = false;
 		this.sneaking = false;
+		this.sprinting = false;
 		this.currentHeight = PLAYER_CONFIG.HEIGHT;
 		this.lastForwardPressAt = -Infinity;
 		this.doubleTapSprinting = false;
@@ -32,7 +33,7 @@ export class PlayerController {
 
 		this.camera = new BABYLON.UniversalCamera('player-camera', BABYLON.Vector3.Zero(), scene);
 		this.camera.minZ = 0.03;
-		this.camera.fov = 1.18;
+		this.camera.fov = RENDER_CONFIG.CAMERA_FOV;
 		this.camera.inertia = 0.18;
 		this.camera.angularSensibility = 2100;
 		this.camera.attachControl(canvas, true);
@@ -45,6 +46,7 @@ export class PlayerController {
 		this.verticalVelocity = 0;
 		this.grounded = true;
 		this.sneaking = false;
+		this.sprinting = false;
 		this.currentHeight = PLAYER_CONFIG.HEIGHT;
 		this.body.ellipsoid.y = this.currentHeight / 2;
 		this.body.position.set(x, feetY + this.currentHeight / 2, z);
@@ -93,8 +95,8 @@ export class PlayerController {
 			sideInput /= inputLength;
 		}
 
-		const controlSprinting = this.input.down('ControlLeft', 'ControlRight');
-		const sprinting = !this.sneaking && forwardInput > 0 && (controlSprinting || this.doubleTapSprinting);
+		const sprintRequested = this.input.controlDown() || this.doubleTapSprinting;
+		this.sprinting = !this.sneaking && inputLength > 0 && sprintRequested;
 
 		const yaw = this.camera.rotation.y;
 		const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
@@ -103,9 +105,12 @@ export class PlayerController {
 
 		const speed = this.sneaking
 			? PLAYER_CONFIG.SNEAK_SPEED
-			: sprinting
+			: this.sprinting
 				? PLAYER_CONFIG.SPRINT_SPEED
 				: PLAYER_CONFIG.WALK_SPEED;
+
+		const targetFov = this.sprinting ? RENDER_CONFIG.CAMERA_FOV * 1.06 : RENDER_CONFIG.CAMERA_FOV;
+		this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 14);
 
 		this.refreshGroundedState(true);
 
@@ -128,7 +133,6 @@ export class PlayerController {
 			const targetX = this.body.position.x + deltaX;
 			if (!this.collidesWithWorld(targetX, this.body.position.z)) this.body.position.x = targetX;
 		}
-
 		if (deltaZ !== 0) {
 			const targetZ = this.body.position.z + deltaZ;
 			if (!this.collidesWithWorld(this.body.position.x, targetZ)) this.body.position.z = targetZ;
@@ -145,7 +149,6 @@ export class PlayerController {
 		const maxY = headY - COLLISION_SKIN;
 		const minZ = centerZ - half + COLLISION_SKIN;
 		const maxZ = centerZ + half - COLLISION_SKIN;
-
 		for (let y = Math.floor(minY); y <= Math.floor(maxY); y++) {
 			for (let z = Math.floor(minZ); z <= Math.floor(maxZ); z++) {
 				for (let x = Math.floor(minX); x <= Math.floor(maxX); x++) {
@@ -161,13 +164,11 @@ export class PlayerController {
 			this.verticalVelocity = 0;
 			return;
 		}
-
 		this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
 		const deltaY = this.verticalVelocity * dt;
 		if (deltaY === 0) return;
 		const oldFeet = this.getFeetY();
 		const oldHead = oldFeet + this.currentHeight;
-
 		if (deltaY < 0) {
 			const proposedFeet = oldFeet + deltaY;
 			const landingY = this.findLandingSurface(oldFeet, proposedFeet);
