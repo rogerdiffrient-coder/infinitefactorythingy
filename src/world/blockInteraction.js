@@ -12,11 +12,23 @@ export class BlockInteraction {
 		this.selectedIndex = 0;
 		this.slots = [...hotbar.querySelectorAll('.hotbar-slot')];
 
-		canvas.addEventListener('contextmenu', event => event.preventDefault());
-		canvas.addEventListener('wheel', event => this.onWheel(event), { passive: false });
-		canvas.addEventListener('mousedown', event => this.onMouseDown(event));
-		window.addEventListener('keydown', event => this.onKeyDown(event));
+		this.onContextMenuBound = event => event.preventDefault();
+		this.onWheelBound = event => this.onWheel(event);
+		this.onMouseDownBound = event => this.onMouseDown(event);
+		this.onKeyDownBound = event => this.onKeyDown(event);
+
+		canvas.addEventListener('contextmenu', this.onContextMenuBound);
+		canvas.addEventListener('wheel', this.onWheelBound, { passive: false });
+		canvas.addEventListener('mousedown', this.onMouseDownBound);
+		window.addEventListener('keydown', this.onKeyDownBound);
 		this.renderSelection();
+	}
+
+	dispose() {
+		this.canvas.removeEventListener('contextmenu', this.onContextMenuBound);
+		this.canvas.removeEventListener('wheel', this.onWheelBound);
+		this.canvas.removeEventListener('mousedown', this.onMouseDownBound);
+		window.removeEventListener('keydown', this.onKeyDownBound);
 	}
 
 	onKeyDown(event) {
@@ -49,20 +61,11 @@ export class BlockInteraction {
 		if (!hit?.hit || !hit.pickedPoint || !hit.getNormal) return null;
 		const normal = hit.getNormal(true);
 		if (!normal) return null;
-
 		const inside = hit.pickedPoint.subtract(normal.scale(0.001));
 		const outside = hit.pickedPoint.add(normal.scale(0.001));
 		return {
-			breakCell: {
-				x: Math.floor(inside.x),
-				y: Math.floor(inside.y),
-				z: Math.floor(inside.z)
-			},
-			placeCell: {
-				x: Math.floor(outside.x),
-				y: Math.floor(outside.y),
-				z: Math.floor(outside.z)
-			}
+			breakCell: { x: Math.floor(inside.x), y: Math.floor(inside.y), z: Math.floor(inside.z) },
+			placeCell: { x: Math.floor(outside.x), y: Math.floor(outside.y), z: Math.floor(outside.z) }
 		};
 	}
 
