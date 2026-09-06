@@ -4,7 +4,7 @@ import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v
 import { VoxelWorld } from './world/world.js?v=real-shadows-4';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=real-shadows-4';
+import { DayNightCycle } from './world/dayNightCycle.js?v=local-shadows-5';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
