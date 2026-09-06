@@ -4,7 +4,8 @@ export const BLOCKS = Object.freeze({
 	AIR: 0,
 	GRASS: 1,
 	DIRT: 2,
-	STONE: 3
+	STONE: 3,
+	DIRT_STONE_MIX: 4
 });
 
 export const BLOCK_DEFINITIONS = Object.freeze({
@@ -24,6 +25,12 @@ export const BLOCK_DEFINITIONS = Object.freeze({
 		id: BLOCKS.STONE,
 		name: 'Stone Block',
 		texture: 'Assets/Blocks/Terrain/Stone-Block/stone-all-faces.png',
+		solid: true
+	},
+	[BLOCKS.DIRT_STONE_MIX]: {
+		id: BLOCKS.DIRT_STONE_MIX,
+		name: 'Dirt-Stone Mix',
+		texture: 'Assets/Blocks/Terrain/Dirt-Stone-Mix/dirt-stone-mix-all-faces.png',
 		solid: true
 	}
 });
