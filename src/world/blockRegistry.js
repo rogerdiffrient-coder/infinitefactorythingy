@@ -44,6 +44,7 @@ export function getBlockMaterial(scene, id) {
 	material.diffuseColor = BABYLON.Color3.White();
 	material.specularColor = BABYLON.Color3.Black();
 	material.ambientColor = BABYLON.Color3.White();
+	material.backFaceCulling = false;
 
 	const texture = new BABYLON.Texture(definition.texture, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
 	texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
