@@ -1,10 +1,10 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=daylight-fill-10';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=outdoor-lighting-11';
 import { InputState } from './input/input.js';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=terrain-restore-9';
 import { VoxelWorld } from './world/world.js?v=terrain-restore-9';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=daylight-fill-10';
+import { DayNightCycle } from './world/dayNightCycle.js?v=outdoor-lighting-11';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
@@ -46,8 +46,9 @@ engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
 const scene = new BABYLON.Scene(engine);
 scene.collisionsEnabled = true;
 scene.clearColor = new BABYLON.Color4(...RENDER_CONFIG.CLEAR_COLOR);
-scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-scene.fogDensity = RENDER_CONFIG.FOG_DENSITY;
+scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+scene.fogStart = RENDER_CONFIG.FOG_START;
+scene.fogEnd = RENDER_CONFIG.FOG_END;
 scene.fogColor = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 scene.ambientColor = BABYLON.Color3.Black();
 
