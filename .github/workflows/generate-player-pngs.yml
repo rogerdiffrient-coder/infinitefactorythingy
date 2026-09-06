@@ -1,0 +1,36 @@
+name: Generate Player PNGs
+
+on:
+  push:
+    paths:
+      - 'scripts/generate_player_pngs.py'
+      - '.github/workflows/generate-player-pngs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate PNG assets
+        run: python3 scripts/generate_player_pngs.py
+
+      - name: Remove old SVG player textures
+        run: rm -f Assets/Player/Default/*.svg
+
+      - name: Commit generated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Assets/Player/Default
+          if git diff --cached --quiet; then
+            echo "No generated asset changes."
+            exit 0
+          fi
+          git commit -m "Generate PNG player textures"
+          git push
