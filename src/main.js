@@ -47,10 +47,10 @@ const world = new VoxelWorld(scene);
 bootStatus.textContent = 'Generating 16×16×16 voxel chunks…';
 world.createStarterWorld();
 
-const player = new PlayerController(scene, canvas, input);
+const player = new PlayerController(scene, canvas, input, world);
 player.camera.fov = RENDER_CONFIG.CAMERA_FOV;
 player.camera.minZ = RENDER_CONFIG.CAMERA_MIN_Z;
-player.spawnOnSurface(0.5, 0.5, WORLD_CONFIG.CHUNK_SIZE_Y * 2);
+player.spawnOnSurface(0.5, 0.5);
 
 const stats = world.getChunkStats();
 bootStatus.textContent = `${stats.chunks} chunks ready · ${stats.faces.toLocaleString()} exposed faces`;
@@ -65,11 +65,17 @@ function setDevOverlayVisible(visible) {
 
 setDevOverlayVisible(false);
 
-document.addEventListener('keydown', event => {
-	if (event.code !== 'F3') return;
+function handleDevToggle(event) {
+	const isF3 = event.code === 'F3' || event.key === 'F3' || event.keyCode === 114;
+	const isFallback = event.code === 'Backquote';
+	if (!isF3 && !isFallback) return;
 	event.preventDefault();
+	event.stopPropagation();
 	setDevOverlayVisible(!devOverlayVisible);
-});
+}
+
+window.addEventListener('keydown', handleDevToggle, true);
+document.addEventListener('keydown', handleDevToggle, true);
 
 function lockPointer() {
 	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
@@ -124,7 +130,7 @@ function updateDebug(dt) {
 	const chunkStats = world.getChunkStats();
 	debug.textContent = [
 		`${engine.getFps().toFixed(0)} FPS`,
-		`XYZ ${position.x.toFixed(2)} / ${position.y.toFixed(2)} / ${position.z.toFixed(2)}`,
+		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
 		`REACH ${PLAYER_CONFIG.MAX_REACH.toFixed(1)}m`,
