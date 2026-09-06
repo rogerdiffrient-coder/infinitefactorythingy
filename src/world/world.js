@@ -15,13 +15,21 @@ function positiveMod(value, size) {
 }
 
 export class VoxelWorld {
-	constructor(scene) {
+	constructor(scene, options = {}) {
 		this.scene = scene;
 		this.chunks = new Map();
+		this.seed = Number(options.seed ?? WORLD_CONFIG.SEED) | 0;
+		this.savedBlocks = { ...(options.savedBlocks ?? {}) };
+		this.onBlockEdit = options.onBlockEdit ?? null;
+		this.generating = false;
 	}
 
 	chunkKey(cx, cy, cz) {
 		return `${cx},${cy},${cz}`;
+	}
+
+	blockKey(x, y, z) {
+		return `${x},${y},${z}`;
 	}
 
 	getChunk(cx, cy, cz) {
@@ -67,6 +75,11 @@ export class VoxelWorld {
 		if (!chunk) return false;
 		if (chunk.getLocal(lx, ly, lz) === id) return false;
 		chunk.setLocal(lx, ly, lz, id);
+
+		if (!this.generating) {
+			this.savedBlocks[this.blockKey(x, y, z)] = id;
+			this.onBlockEdit?.(this.savedBlocks);
+		}
 		return true;
 	}
 
@@ -118,6 +131,7 @@ export class VoxelWorld {
 	}
 
 	createStarterWorld() {
+		this.generating = true;
 		const radius = WORLD_CONFIG.STARTER_CHUNK_RADIUS;
 		const groundHeight = WORLD_CONFIG.STARTER_GROUND_HEIGHT;
 
@@ -136,16 +150,22 @@ export class VoxelWorld {
 			for (let x = minX; x < maxX; x++) {
 				for (let y = 0; y < groundHeight; y++) {
 					let block = BLOCKS.STONE;
-					if (y === groundHeight - 1) {
-						block = BLOCKS.GRASS;
-					} else if (y >= groundHeight - 4) {
-						block = BLOCKS.DIRT;
-					}
+					if (y === groundHeight - 1) block = BLOCKS.GRASS;
+					else if (y >= groundHeight - 4) block = BLOCKS.DIRT;
 					this.setBlock(x, y, z, block);
 				}
 			}
 		}
 
+		for (const [key, id] of Object.entries(this.savedBlocks)) {
+			const [x, y, z] = key.split(',').map(Number);
+			if ([x, y, z].some(Number.isNaN)) continue;
+			const location = this.worldToChunk(x, y, z);
+			const chunk = id === BLOCKS.AIR ? this.getChunk(location.cx, location.cy, location.cz) : this.ensureChunk(location.cx, location.cy, location.cz);
+			if (chunk) chunk.setLocal(location.lx, location.ly, location.lz, Number(id));
+		}
+
+		this.generating = false;
 		this.rebuildAllChunks();
 	}
 
@@ -161,10 +181,6 @@ export class VoxelWorld {
 			meshes++;
 			faces += chunk.mesh.metadata?.faceCount ?? 0;
 		}
-		return {
-			chunks: this.chunks.size,
-			meshes,
-			faces
-		};
+		return { chunks: this.chunks.size, meshes, faces };
 	}
 }
