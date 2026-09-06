@@ -52,7 +52,8 @@ export function getBlockMaterial(scene, id) {
 	material.specularColor = BABYLON.Color3.Black();
 	material.ambientColor = BABYLON.Color3.Black();
 	material.emissiveColor = BABYLON.Color3.Black();
-	material.backFaceCulling = false;
+	material.backFaceCulling = true;
+	material.twoSidedLighting = false;
 	material.useVertexColors = false;
 
 	const texture = new BABYLON.Texture(definition.texture, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
