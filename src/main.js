@@ -1,10 +1,10 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=shadow-balance-7';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=visibility-shadows-8';
 import { InputState } from './input/input.js';
-import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=lighting-rebalance-2';
-import { VoxelWorld } from './world/world.js?v=real-shadows-4';
+import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=visibility-shadows-8';
+import { VoxelWorld } from './world/world.js?v=visibility-shadows-8';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=shadow-balance-7';
+import { DayNightCycle } from './world/dayNightCycle.js?v=visibility-shadows-8';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
@@ -85,7 +85,6 @@ function clearExistingWorld() {
 	blockInteraction?.dispose?.();
 	for (const mesh of [...scene.meshes]) {
 		if (!mesh.metadata?.isVoxelChunk) continue;
-		dayNight.shadowGenerator?.removeShadowCaster?.(mesh, false);
 		mesh.dispose(false, false);
 	}
 	player?.body?.dispose?.();
@@ -247,6 +246,7 @@ function updateDebug(dt) {
 		`WORLD ${activeWorldRecord?.name ?? 'UNKNOWN'}`,
 		`SEED ${world.seed}`,
 		`SKY ${cycle.label} ${(cycle.progress * 100).toFixed(1)}%`,
+		`VISIBLE CHUNKS ${cycle.visibleChunks ?? 0} · SHADOW CASTERS ${cycle.shadowCasters ?? 0}`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
 		`SPRINT ${player.sprinting ? 'ON' : 'OFF'}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
