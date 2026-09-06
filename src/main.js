@@ -75,7 +75,6 @@ function handleDevToggle(event) {
 }
 
 window.addEventListener('keydown', handleDevToggle, true);
-document.addEventListener('keydown', handleDevToggle, true);
 
 function lockPointer() {
 	if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
