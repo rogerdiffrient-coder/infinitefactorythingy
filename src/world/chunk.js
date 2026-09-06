@@ -67,7 +67,9 @@ export class Chunk {
 	}
 
 	rebuildMesh() {
+		const shadowGenerator = this.scene.metadata?.iftShadowGenerator ?? null;
 		if (this.mesh) {
+			shadowGenerator?.removeShadowCaster?.(this.mesh, false);
 			this.mesh.dispose(false, false);
 			this.mesh = null;
 		}
@@ -153,9 +155,11 @@ export class Chunk {
 
 		mesh.checkCollisions = true;
 		mesh.isPickable = true;
+		mesh.receiveShadows = true;
 		mesh.metadata = { isVoxelChunk: true, chunk: this, faceCount: totalFaces };
 		mesh.freezeWorldMatrix();
 		mesh.freezeNormals();
+		shadowGenerator?.addShadowCaster?.(mesh, false);
 		this.mesh = mesh;
 	}
 }
