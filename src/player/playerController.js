@@ -109,7 +109,7 @@ export class PlayerController {
 
 		this.refreshGroundedState(true);
 
-		if (this.grounded && this.input.consume('Space')) {
+		if (this.grounded && this.input.down('Space')) {
 			this.verticalVelocity = PLAYER_CONFIG.JUMP_VELOCITY;
 			this.grounded = false;
 		}
@@ -126,16 +126,12 @@ export class PlayerController {
 	moveHorizontalWithVoxelCollision(deltaX, deltaZ) {
 		if (deltaX !== 0) {
 			const targetX = this.body.position.x + deltaX;
-			if (!this.collidesWithWorld(targetX, this.body.position.z)) {
-				this.body.position.x = targetX;
-			}
+			if (!this.collidesWithWorld(targetX, this.body.position.z)) this.body.position.x = targetX;
 		}
 
 		if (deltaZ !== 0) {
 			const targetZ = this.body.position.z + deltaZ;
-			if (!this.collidesWithWorld(this.body.position.x, targetZ)) {
-				this.body.position.z = targetZ;
-			}
+			if (!this.collidesWithWorld(this.body.position.x, targetZ)) this.body.position.z = targetZ;
 		}
 	}
 
@@ -143,7 +139,6 @@ export class PlayerController {
 		const half = PLAYER_CONFIG.WIDTH / 2;
 		const feetY = this.getFeetY();
 		const headY = feetY + this.currentHeight;
-
 		const minX = centerX - half + COLLISION_SKIN;
 		const maxX = centerX + half - COLLISION_SKIN;
 		const minY = feetY + COLLISION_SKIN;
@@ -151,21 +146,13 @@ export class PlayerController {
 		const minZ = centerZ - half + COLLISION_SKIN;
 		const maxZ = centerZ + half - COLLISION_SKIN;
 
-		const blockMinX = Math.floor(minX);
-		const blockMaxX = Math.floor(maxX);
-		const blockMinY = Math.floor(minY);
-		const blockMaxY = Math.floor(maxY);
-		const blockMinZ = Math.floor(minZ);
-		const blockMaxZ = Math.floor(maxZ);
-
-		for (let y = blockMinY; y <= blockMaxY; y++) {
-			for (let z = blockMinZ; z <= blockMaxZ; z++) {
-				for (let x = blockMinX; x <= blockMaxX; x++) {
+		for (let y = Math.floor(minY); y <= Math.floor(maxY); y++) {
+			for (let z = Math.floor(minZ); z <= Math.floor(maxZ); z++) {
+				for (let x = Math.floor(minX); x <= Math.floor(maxX); x++) {
 					if (this.world.isSolid(x, y, z)) return true;
 				}
 			}
 		}
-
 		return false;
 	}
 
@@ -178,7 +165,6 @@ export class PlayerController {
 		this.verticalVelocity -= PLAYER_CONFIG.GRAVITY * dt;
 		const deltaY = this.verticalVelocity * dt;
 		if (deltaY === 0) return;
-
 		const oldFeet = this.getFeetY();
 		const oldHead = oldFeet + this.currentHeight;
 
@@ -200,7 +186,6 @@ export class PlayerController {
 				return;
 			}
 		}
-
 		this.body.position.y += deltaY;
 	}
 
@@ -214,7 +199,6 @@ export class PlayerController {
 			[this.body.position.x + radius, this.body.position.z + radius]
 		];
 		let best = null;
-
 		for (const [x, z] of probes) {
 			const surfaceY = this.world.getSurfaceYAt(x, z, Math.ceil(oldFeet + 0.25));
 			if (surfaceY === null) continue;
@@ -222,7 +206,6 @@ export class PlayerController {
 			if (surfaceY < proposedFeet - GROUND_TOLERANCE) continue;
 			if (best === null || surfaceY > best) best = surfaceY;
 		}
-
 		return best;
 	}
 
@@ -236,29 +219,23 @@ export class PlayerController {
 			[this.body.position.x + radius, this.body.position.z + radius]
 		];
 		let nearest = null;
-
 		for (const [x, z] of probes) {
 			const ceilingY = this.world.getCeilingBottomYAt(x, z, oldHead, proposedHead);
 			if (ceilingY === null) continue;
 			if (nearest === null || ceilingY < nearest) nearest = ceilingY;
 		}
-
 		return nearest;
 	}
 
 	applySneakEdgeSafety(displacement) {
 		if (displacement.x === 0 && displacement.z === 0) return;
-
 		const currentX = this.body.position.x;
 		const currentZ = this.body.position.z;
 		const targetX = currentX + displacement.x;
 		const targetZ = currentZ + displacement.z;
-
 		if (this.hasSneakSupport(targetX, targetZ)) return;
-
 		const canMoveX = displacement.x !== 0 && this.hasSneakSupport(targetX, currentZ);
 		const canMoveZ = displacement.z !== 0 && this.hasSneakSupport(currentX, targetZ);
-
 		if (!canMoveX) displacement.x = 0;
 		if (!canMoveZ) displacement.z = 0;
 	}
@@ -280,18 +257,15 @@ export class PlayerController {
 			this.grounded = false;
 			return;
 		}
-
 		const feetY = this.getFeetY();
 		const landingY = this.findLandingSurface(feetY + GROUND_TOLERANCE, feetY - GROUND_TOLERANCE);
 		if (landingY === null) {
 			this.grounded = false;
 			return;
 		}
-
 		const distance = feetY - landingY;
 		const canStand = distance >= -GROUND_TOLERANCE && distance <= GROUND_TOLERANCE;
 		this.grounded = canStand;
-
 		if (canStand && snap) {
 			this.body.position.y = landingY + this.currentHeight / 2;
 			this.verticalVelocity = 0;
@@ -310,7 +284,6 @@ export class PlayerController {
 			[this.body.position.x - radius, eyeY, this.body.position.z + radius],
 			[this.body.position.x + radius, eyeY, this.body.position.z + radius]
 		];
-
 		for (const [x, y, z] of probes) {
 			const bx = Math.floor(x);
 			const by = Math.floor(y);
