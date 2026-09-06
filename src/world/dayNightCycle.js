@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=outdoor-lighting-11';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG, WORLD_CONFIG } from '../config.js?v=lighting-rework-12';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -37,24 +37,29 @@ function createCelestialMaterial(scene, name, texturePath) {
 	return material;
 }
 
+const WORLD_WIDTH = WORLD_CONFIG.CHUNK_SIZE_X * (WORLD_CONFIG.STARTER_CHUNK_RADIUS * 2 + 1);
+const WORLD_DEPTH = WORLD_CONFIG.CHUNK_SIZE_Z * (WORLD_CONFIG.STARTER_CHUNK_RADIUS * 2 + 1);
+const WORLD_HEIGHT = WORLD_CONFIG.TERRAIN_MAX_HEIGHT + WORLD_CONFIG.CHUNK_SIZE_Y;
+const WORLD_SHADOW_DISTANCE = Math.ceil(Math.hypot(WORLD_WIDTH, WORLD_HEIGHT, WORLD_DEPTH)) + 24;
+
 function createCascadedShadowGenerator(light) {
 	if (!BABYLON.CascadedShadowGenerator) return null;
-	const generator = new BABYLON.CascadedShadowGenerator(2048, light);
+	const generator = new BABYLON.CascadedShadowGenerator(RENDER_CONFIG.SHADOW_MAP_SIZE, light);
 	generator.numCascades = 4;
-	generator.lambda = 0.78;
+	generator.lambda = 0.58;
 	generator.stabilizeCascades = true;
 	generator.depthClamp = true;
 	generator.autoCalcDepthBounds = true;
-	generator.shadowMaxZ = 180;
-	generator.cascadeBlendPercentage = 0.12;
-	generator.bias = 0.0015;
-	generator.normalBias = 0.035;
+	generator.shadowMaxZ = WORLD_SHADOW_DISTANCE;
+	generator.cascadeBlendPercentage = 0.18;
+	generator.bias = 0.0009;
+	generator.normalBias = 0.022;
 	generator.forceBackFacesOnly = true;
 	generator.usePercentageCloserFiltering = true;
-	if (BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
-		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+	if (BABYLON.ShadowGenerator?.QUALITY_HIGH !== undefined) {
+		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_HIGH;
 	}
-	generator.setDarkness?.(0.08);
+	generator.setDarkness?.(0.14);
 	return generator;
 }
 
@@ -77,14 +82,13 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		// Bright sky, intentionally weak ground bounce. A vertical wall gets a
-		// moderate amount of indirect light instead of nearly the same fill as a top face.
-		this.daySkyLight = new BABYLON.Color3(0.94, 0.97, 1.0);
-		this.dayGroundLight = new BABYLON.Color3(0.14, 0.16, 0.18);
-		this.twilightSkyLight = new BABYLON.Color3(0.74, 0.66, 0.6);
-		this.twilightGroundLight = new BABYLON.Color3(0.12, 0.1, 0.11);
-		this.nightSkyLight = new BABYLON.Color3(0.25, 0.33, 0.52);
-		this.nightGroundLight = new BABYLON.Color3(0.025, 0.035, 0.06);
+		// Keep indirect light subtle so wall brightness is driven mainly by the sun.
+		this.daySkyLight = new BABYLON.Color3(0.78, 0.84, 0.92);
+		this.dayGroundLight = new BABYLON.Color3(0.05, 0.06, 0.07);
+		this.twilightSkyLight = new BABYLON.Color3(0.58, 0.52, 0.48);
+		this.twilightGroundLight = new BABYLON.Color3(0.04, 0.04, 0.05);
+		this.nightSkyLight = new BABYLON.Color3(0.13, 0.18, 0.28);
+		this.nightGroundLight = new BABYLON.Color3(0.015, 0.02, 0.03);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
@@ -151,7 +155,6 @@ export class DayNightCycle {
 		this.visibleChunkCount = visible.length;
 
 		const lightDirection = this.sunLight.direction.normalizeToNew();
-		const maxShadowTravel = 180;
 		const chunkRadius = Math.sqrt(
 			WORLD_CONFIG.CHUNK_SIZE_X ** 2 +
 			WORLD_CONFIG.CHUNK_SIZE_Y ** 2 +
@@ -160,6 +163,9 @@ export class DayNightCycle {
 		const lateralMargin = chunkRadius * 2 + 2;
 		const relevant = new Set(visible);
 
+		// Every visible chunk casts. Off-screen chunks also cast whenever their shadow ray
+		// can reach any visible chunk, with the maximum travel distance derived from the
+		// entire finite world rather than an arbitrary cutoff.
 		for (const caster of chunks) {
 			if (relevant.has(caster)) continue;
 			const casterCenter = getChunkCenter(caster);
@@ -168,7 +174,7 @@ export class DayNightCycle {
 				const receiverCenter = getChunkCenter(receiver);
 				const casterToReceiver = receiverCenter.subtract(casterCenter);
 				const alongLight = BABYLON.Vector3.Dot(casterToReceiver, lightDirection);
-				if (alongLight < -chunkRadius || alongLight > maxShadowTravel + chunkRadius) continue;
+				if (alongLight < -chunkRadius || alongLight > WORLD_SHADOW_DISTANCE + chunkRadius) continue;
 
 				const projected = lightDirection.scale(alongLight);
 				const sidewaysDistance = casterToReceiver.subtract(projected).length();
@@ -197,7 +203,7 @@ export class DayNightCycle {
 		const horizon = Math.cos(angle) * radius;
 		const x = horizon * 0.82;
 		const y = Math.sin(angle) * radius;
-		const z = horizon * 0.57;
+		const z = horizon * 0.48;
 		const lightMultiplier = this.occluded ? 0.02 : 1;
 
 		if (isDay) {
