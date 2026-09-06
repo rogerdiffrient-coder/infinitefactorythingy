@@ -1,5 +1,5 @@
-import { WORLD_CONFIG } from '../config.js?v=visibility-shadows-8';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=visibility-shadows-8';
+import { WORLD_CONFIG } from '../config.js?v=terrain-restore-9';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=terrain-restore-9';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
