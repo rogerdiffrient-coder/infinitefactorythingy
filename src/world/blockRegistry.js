@@ -53,7 +53,7 @@ export function getBlockMaterial(scene, id) {
 	material.ambientColor = BABYLON.Color3.Black();
 	material.emissiveColor = BABYLON.Color3.Black();
 	material.backFaceCulling = false;
-	material.useVertexColors = true;
+	material.useVertexColors = false;
 
 	const texture = new BABYLON.Texture(definition.texture, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
 	texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
