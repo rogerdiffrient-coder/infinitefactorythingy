@@ -3,9 +3,9 @@ import { InputState } from './input/input.js?v=bug-sweep-15';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=bug-sweep-15';
 import { VoxelWorld } from './world/world.js?v=bug-sweep-15';
 import { WorldManager } from './world/worldManager.js?v=bug-sweep-15';
-import { BlockInteraction } from './world/blockInteraction.js?v=bug-sweep-15';
+import { BlockInteraction } from './world/blockInteraction.js?v=player-model-17';
 import { DayNightCycle } from './world/dayNightCycle.js?v=bug-sweep-15';
-import { PlayerController } from './player/playerController.js?v=bug-sweep-15';
+import { PlayerController } from './player/playerController.js?v=player-model-17';
 import { HealthSystem } from './player/healthSystem.js?v=bug-sweep-15';
 import { TitleScreen } from './ui/titleScreen.js?v=bug-sweep-15';
 
@@ -85,8 +85,7 @@ function resetWorldVisualState() {
 function clearExistingWorld() {
 	blockInteraction?.dispose?.();
 	world?.dispose?.();
-	player?.body?.dispose?.();
-	player?.camera?.dispose?.();
+	player?.dispose?.();
 	resetWorldVisualState();
 	scene.activeCamera = standbyCamera;
 	world = null;
@@ -121,6 +120,7 @@ function startWorld(record) {
 	health = new HealthSystem(player, healthBar, damageFlash);
 	blockInteraction = new BlockInteraction(canvas, player, world, hotbar, selectedBlockName);
 	dayNight.reset();
+	dayNight.refreshShadowCasters();
 	dayNight.update(0, player.getPosition());
 
 	titleScreen.hide();
@@ -252,6 +252,7 @@ function updateDebug(dt) {
 		`SKY ${cycle.label} ${(cycle.progress * 100).toFixed(1)}%`,
 		`VISIBLE CHUNKS ${cycle.visibleChunks ?? 0} · SHADOW CASTERS ${cycle.shadowCasters ?? 0}`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
+		`VIEW ${player.thirdPerson ? 'THIRD PERSON' : 'FIRST PERSON'} · F5 TOGGLE`,
 		`SPRINT ${player.sprinting ? 'ON' : 'OFF'}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
@@ -284,7 +285,7 @@ engine.runRenderLoop(() => {
 
 window.addEventListener('resize', () => engine.resize());
 
-console.info('[IFT] bug sweep build loaded', {
+console.info('[IFT] player model build loaded', {
 	blockSize: WORLD_CONFIG.BLOCK_SIZE,
 	chunkSize: [WORLD_CONFIG.CHUNK_SIZE_X, WORLD_CONFIG.CHUNK_SIZE_Y, WORLD_CONFIG.CHUNK_SIZE_Z],
 	worldCount: worldManager.list().length
