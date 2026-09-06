@@ -1,4 +1,4 @@
-import { DAYLIGHT_CONFIG, RENDER_CONFIG } from '../config.js?v=real-lighting-1';
+import { DAYLIGHT_CONFIG, RENDER_CONFIG } from '../config.js?v=lighting-rebalance-2';
 
 function clamp01(value) {
 	return Math.max(0, Math.min(1, value));
@@ -37,22 +37,6 @@ function createCelestialMaterial(scene, name, texturePath) {
 	return material;
 }
 
-function createShadowGenerator(light) {
-	const Generator = BABYLON.CascadedShadowGenerator ?? BABYLON.ShadowGenerator;
-	const generator = new Generator(1024, light);
-	generator.bias = 0.0015;
-	generator.normalBias = 0.035;
-	generator.usePercentageCloserFiltering = true;
-	if ('filteringQuality' in generator && BABYLON.ShadowGenerator?.QUALITY_MEDIUM !== undefined) {
-		generator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
-	}
-	if ('numCascades' in generator) generator.numCascades = 3;
-	if ('lambda' in generator) generator.lambda = 0.72;
-	if ('stabilizeCascades' in generator) generator.stabilizeCascades = true;
-	if ('shadowMaxZ' in generator) generator.shadowMaxZ = 180;
-	return generator;
-}
-
 export class DayNightCycle {
 	constructor(scene) {
 		this.scene = scene;
@@ -65,12 +49,14 @@ export class DayNightCycle {
 		this.dayFog = new BABYLON.Color3(...RENDER_CONFIG.FOG_COLOR);
 		this.nightFog = new BABYLON.Color3(0.025, 0.04, 0.08);
 
-		this.daySkyLight = new BABYLON.Color3(1, 1, 1);
-		this.dayGroundLight = new BABYLON.Color3(0.22, 0.24, 0.27);
-		this.twilightSkyLight = new BABYLON.Color3(0.8, 0.68, 0.58);
-		this.twilightGroundLight = new BABYLON.Color3(0.16, 0.13, 0.12);
-		this.nightSkyLight = new BABYLON.Color3(0.28, 0.36, 0.56);
-		this.nightGroundLight = new BABYLON.Color3(0.035, 0.045, 0.07);
+		// Ambient skylight is intentionally neutral and moderate. It simulates
+		// indirect light from the sky without hardcoding per-face brightness.
+		this.daySkyLight = new BABYLON.Color3(0.78, 0.82, 0.88);
+		this.dayGroundLight = new BABYLON.Color3(0.48, 0.5, 0.54);
+		this.twilightSkyLight = new BABYLON.Color3(0.67, 0.56, 0.5);
+		this.twilightGroundLight = new BABYLON.Color3(0.34, 0.3, 0.3);
+		this.nightSkyLight = new BABYLON.Color3(0.24, 0.31, 0.5);
+		this.nightGroundLight = new BABYLON.Color3(0.08, 0.1, 0.16);
 
 		this.ambientLight = new BABYLON.HemisphericLight('ambient-sky-light', new BABYLON.Vector3(0, 1, 0), scene);
 		this.ambientLight.diffuse.copyFrom(this.daySkyLight);
@@ -78,16 +64,18 @@ export class DayNightCycle {
 		this.ambientLight.specular = BABYLON.Color3.Black();
 
 		this.sunLight = new BABYLON.DirectionalLight('sun-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
-		this.sunLight.diffuse = new BABYLON.Color3(1, 0.97, 0.9);
+		this.sunLight.diffuse = new BABYLON.Color3(1, 0.98, 0.94);
 		this.sunLight.specular = BABYLON.Color3.Black();
 
 		this.moonLight = new BABYLON.DirectionalLight('moon-directional-light', new BABYLON.Vector3(0, -1, 0), scene);
 		this.moonLight.diffuse = new BABYLON.Color3(0.48, 0.58, 0.9);
 		this.moonLight.specular = BABYLON.Color3.Black();
 
-		this.shadowGenerator = createShadowGenerator(this.sunLight);
+		// Shadow maps were producing severe self-shadowing/banding across our
+		// large generated chunk meshes. Keep true directional Lambert lighting
+		// for now; proper chunk-safe shadow maps can be added later.
 		scene.metadata ??= {};
-		scene.metadata.iftShadowGenerator = this.shadowGenerator;
+		scene.metadata.iftShadowGenerator = null;
 
 		this.sun = BABYLON.MeshBuilder.CreatePlane('sun', {
 			size: DAYLIGHT_CONFIG.CELESTIAL_SIZE,
@@ -137,7 +125,7 @@ export class DayNightCycle {
 			this.sun.position.set(center.x + x, center.y + y, center.z + z);
 			this.sunLight.position.copyFrom(this.sun.position);
 			this.sunLight.direction.copyFrom(center.subtract(this.sun.position).normalize());
-			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.55) * lightMultiplier;
+			this.sunLight.intensity = DAYLIGHT_CONFIG.SUN_MAX_INTENSITY * Math.pow(altitude, 0.6) * lightMultiplier;
 			this.moonLight.intensity = 0;
 
 			const dayBlend = clamp01(altitude * 3.4);
