@@ -1,0 +1,24 @@
+{
+  "pixelScale": 4,
+  "rendering": "pixelated",
+  "atlases": {
+    "machines": {
+      "file": "assets/pixel/machines.png",
+      "cell": [48, 48],
+      "columns": 4,
+      "sprites": ["manual_miner","manual_seller","auto_extractor","conveyor","splitter","merger","buffer","furnace","press","assembler","auto_seller","coal_generator","solar_panel","research_lab","overclocker","battery_bank"]
+    },
+    "items": {
+      "file": "assets/pixel/items.png",
+      "cell": [24, 24],
+      "columns": 6,
+      "sprites": ["iron_ore","copper_ore","coal","stone","silicon","uranium","iron_ingot","copper_ingot","steel_ingot","plate","gear","wire","circuit","advanced_part","battery","research","fusion_core","crystal"]
+    },
+    "world": {
+      "file": "assets/pixel/world.png",
+      "cell": [32, 32],
+      "columns": 4,
+      "sprites": ["grass","dirt","stone_tile","metal_platform","support","ladder","ore_iron","ore_copper","ore_coal","ore_uranium","lamp","crate","pipe","vent","sign","tree"]
+    }
+  }
+}
