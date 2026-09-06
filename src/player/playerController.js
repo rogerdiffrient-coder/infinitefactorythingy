@@ -1,4 +1,4 @@
-import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=geometry-lighting-14';
+import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=bug-sweep-15';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
