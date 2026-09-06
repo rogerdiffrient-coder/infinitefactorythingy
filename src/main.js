@@ -1,10 +1,10 @@
-import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=outdoor-lighting-11';
+import { WORLD_CONFIG, PLAYER_CONFIG, RENDER_CONFIG } from './config.js?v=lighting-rework-12';
 import { InputState } from './input/input.js';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=terrain-restore-9';
 import { VoxelWorld } from './world/world.js?v=terrain-restore-9';
 import { WorldManager } from './world/worldManager.js';
 import { BlockInteraction } from './world/blockInteraction.js?v=speedbridge-2';
-import { DayNightCycle } from './world/dayNightCycle.js?v=outdoor-lighting-11';
+import { DayNightCycle } from './world/dayNightCycle.js?v=lighting-rework-12';
 import { PlayerController } from './player/playerController.js';
 import { HealthSystem } from './player/healthSystem.js';
 import { TitleScreen } from './ui/titleScreen.js';
