@@ -6,31 +6,17 @@ const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
 const SZ = WORLD_CONFIG.CHUNK_SIZE_Z;
 
 const FACE_DEFINITIONS = [
-	{
-		dir: [1, 0, 0],
-		vertices: [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]]
-	},
-	{
-		dir: [-1, 0, 0],
-		vertices: [[0, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0]]
-	},
-	{
-		dir: [0, 1, 0],
-		vertices: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]]
-	},
-	{
-		dir: [0, -1, 0],
-		vertices: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]
-	},
-	{
-		dir: [0, 0, 1],
-		vertices: [[1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]]
-	},
-	{
-		dir: [0, 0, -1],
-		vertices: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]]
-	}
+	{ dir: [1, 0, 0], vertices: [[1, 0, 0], [1, 1, 0], [1, 1, 1], [1, 0, 1]] },
+	{ dir: [-1, 0, 0], vertices: [[0, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0]] },
+	{ dir: [0, 1, 0], vertices: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]] },
+	{ dir: [0, -1, 0], vertices: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]] },
+	{ dir: [0, 0, 1], vertices: [[1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 1]] },
+	{ dir: [0, 0, -1], vertices: [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0]] }
 ];
+
+function createGroup() {
+	return { positions: [], indices: [], uvs: [], vertexBase: 0, faces: 0 };
+}
 
 export class Chunk {
 	constructor(world, chunkX, chunkY, chunkZ) {
@@ -71,19 +57,21 @@ export class Chunk {
 			this.mesh = null;
 		}
 
-		const positions = [];
-		const indices = [];
-		const uvs = [];
-		const normals = [];
 		const origin = this.worldOrigin();
-		let vertexBase = 0;
-		let faceCount = 0;
+		const groups = new Map();
+		let totalFaces = 0;
 
 		for (let y = 0; y < SY; y++) {
 			for (let z = 0; z < SZ; z++) {
 				for (let x = 0; x < SX; x++) {
 					const blockId = this.getLocal(x, y, z);
 					if (blockId === BLOCKS.AIR) continue;
+
+					let group = groups.get(blockId);
+					if (!group) {
+						group = createGroup();
+						groups.set(blockId, group);
+					}
 
 					const worldX = origin.x + x;
 					const worldY = origin.y + y;
@@ -94,26 +82,45 @@ export class Chunk {
 						if (this.world.getBlock(worldX + dx, worldY + dy, worldZ + dz) !== BLOCKS.AIR) continue;
 
 						for (const [vx, vy, vz] of face.vertices) {
-							positions.push(x + vx, y + vy, z + vz);
+							group.positions.push(x + vx, y + vy, z + vz);
 						}
-
-						uvs.push(0, 1, 0, 0, 1, 0, 1, 1);
-						indices.push(
-							vertexBase,
-							vertexBase + 1,
-							vertexBase + 2,
-							vertexBase,
-							vertexBase + 2,
-							vertexBase + 3
+						group.uvs.push(0, 1, 0, 0, 1, 0, 1, 1);
+						group.indices.push(
+							group.vertexBase,
+							group.vertexBase + 1,
+							group.vertexBase + 2,
+							group.vertexBase,
+							group.vertexBase + 2,
+							group.vertexBase + 3
 						);
-						vertexBase += 4;
-						faceCount++;
+						group.vertexBase += 4;
+						group.faces++;
+						totalFaces++;
 					}
 				}
 			}
 		}
 
-		if (positions.length === 0) return;
+		if (totalFaces === 0) return;
+
+		const positions = [];
+		const indices = [];
+		const uvs = [];
+		const normals = [];
+		const materialGroups = [];
+		let vertexOffset = 0;
+		let indexOffset = 0;
+
+		for (const [blockId, group] of groups) {
+			const vertexCount = group.positions.length / 3;
+			const indexCount = group.indices.length;
+			positions.push(...group.positions);
+			uvs.push(...group.uvs);
+			indices.push(...group.indices.map(index => index + vertexOffset));
+			materialGroups.push({ blockId, vertexOffset, vertexCount, indexOffset, indexCount });
+			vertexOffset += vertexCount;
+			indexOffset += indexCount;
+		}
 
 		BABYLON.VertexData.ComputeNormals(positions, indices, normals);
 
@@ -126,17 +133,35 @@ export class Chunk {
 		vertexData.applyToMesh(mesh, true);
 
 		mesh.position.set(origin.x, origin.y, origin.z);
-		mesh.material = getBlockMaterial(this.scene, BLOCKS.GRASS);
+
+		if (materialGroups.length === 1) {
+			mesh.material = getBlockMaterial(this.scene, materialGroups[0].blockId);
+		} else {
+			const multiMaterial = new BABYLON.MultiMaterial(`chunk-material-${this.chunkX}-${this.chunkY}-${this.chunkZ}`, this.scene);
+			multiMaterial.subMaterials = materialGroups.map(group => getBlockMaterial(this.scene, group.blockId));
+			mesh.material = multiMaterial;
+			mesh.subMeshes = [];
+			materialGroups.forEach((group, materialIndex) => {
+				new BABYLON.SubMesh(
+					materialIndex,
+					group.vertexOffset,
+					group.vertexCount,
+					group.indexOffset,
+					group.indexCount,
+					mesh
+				);
+			});
+		}
+
 		mesh.checkCollisions = true;
 		mesh.isPickable = true;
 		mesh.metadata = {
 			isVoxelChunk: true,
 			chunk: this,
-			faceCount
+			faceCount: totalFaces
 		};
 		mesh.freezeWorldMatrix();
 		mesh.freezeNormals();
-
 		this.mesh = mesh;
 	}
 }
