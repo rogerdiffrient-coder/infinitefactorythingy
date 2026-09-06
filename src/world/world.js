@@ -76,6 +76,17 @@ export class VoxelWorld {
 		return null;
 	}
 
+	getCeilingBottomYAt(x, z, minY, maxY) {
+		const blockX = Math.floor(x);
+		const blockZ = Math.floor(z);
+		const start = Math.floor(minY);
+		const end = Math.floor(maxY);
+		for (let y = start; y <= end; y++) {
+			if (this.isSolid(blockX, y, blockZ)) return y;
+		}
+		return null;
+	}
+
 	hasSupportAt(x, z, feetY, tolerance = 0.12) {
 		const surfaceY = this.getSurfaceYAt(x, z, Math.ceil(feetY + 1));
 		return surfaceY !== null && Math.abs(surfaceY - feetY) <= tolerance;
