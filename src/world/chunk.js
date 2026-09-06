@@ -67,7 +67,7 @@ export class Chunk {
 
 	rebuildMesh() {
 		if (this.mesh) {
-			this.mesh.dispose(false, true);
+			this.mesh.dispose(false, false);
 			this.mesh = null;
 		}
 
