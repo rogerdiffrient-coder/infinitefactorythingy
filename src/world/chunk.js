@@ -102,10 +102,6 @@ export class Chunk {
 							group.normals.push(dx, dy, dz);
 						}
 						group.uvs.push(...UV_ROTATIONS[hashRotation(this.world.seed, worldX, worldY, worldZ, faceIndex)]);
-
-						// Babylon's default front-face convention is opposite the original
-						// prototype winding. Reverse each triangle so the visible outside of
-						// every voxel is also the front side used by culling and shadows.
 						group.indices.push(
 							group.vertexBase,
 							group.vertexBase + 2,
@@ -174,8 +170,6 @@ export class Chunk {
 		mesh.freezeNormals();
 		this.mesh = mesh;
 
-		// Keep the finite world's caster list stable. Rebuilding one chunk replaces
-		// its mesh, so tell the daylight system to refresh the complete list once.
-		this.scene.metadata?.iftRefreshShadowCasters?.();
+		if (!this.world.generating) this.scene.metadata?.iftRefreshShadowCasters?.();
 	}
 }
