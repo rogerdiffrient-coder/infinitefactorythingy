@@ -1,5 +1,5 @@
 import { WORLD_CONFIG } from '../config.js';
-import { BLOCKS } from './blockRegistry.js';
+import { BLOCKS, getBlockDefinition } from './blockRegistry.js';
 import { Chunk } from './chunk.js';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
@@ -56,10 +56,24 @@ export class VoxelWorld {
 		return chunk.getLocal(lx, ly, lz);
 	}
 
+	isSolid(x, y, z) {
+		const definition = getBlockDefinition(this.getBlock(x, y, z));
+		return Boolean(definition?.solid);
+	}
+
 	setBlock(x, y, z, id) {
 		const { cx, cy, cz, lx, ly, lz } = this.worldToChunk(x, y, z);
 		const chunk = this.ensureChunk(cx, cy, cz);
 		chunk.setLocal(lx, ly, lz, id);
+	}
+
+	getSurfaceYAt(x, z, maxY = WORLD_CONFIG.CHUNK_SIZE_Y * 4) {
+		const blockX = Math.floor(x);
+		const blockZ = Math.floor(z);
+		for (let y = Math.floor(maxY); y >= -WORLD_CONFIG.CHUNK_SIZE_Y * 2; y--) {
+			if (this.isSolid(blockX, y, blockZ)) return y + 1;
+		}
+		return null;
 	}
 
 	createStarterWorld() {
@@ -80,7 +94,10 @@ export class VoxelWorld {
 		for (let z = minZ; z < maxZ; z++) {
 			for (let x = minX; x < maxX; x++) {
 				for (let y = 0; y < groundHeight; y++) {
-					this.setBlock(x, y, z, BLOCKS.GRASS);
+					let block = BLOCKS.STONE;
+					if (y === groundHeight - 1) block = BLOCKS.GRASS;
+					else if (y === groundHeight - 2) block = BLOCKS.DIRT;
+					this.setBlock(x, y, z, block);
 				}
 			}
 		}
