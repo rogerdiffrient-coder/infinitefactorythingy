@@ -1,5 +1,5 @@
-import { WORLD_CONFIG } from '../config.js';
-import { BLOCKS, getBlockMaterial } from './blockRegistry.js';
+import { WORLD_CONFIG } from '../config.js?v=visibility-shadows-8';
+import { BLOCKS, getBlockMaterial } from './blockRegistry.js?v=visibility-shadows-8';
 
 const SX = WORLD_CONFIG.CHUNK_SIZE_X;
 const SY = WORLD_CONFIG.CHUNK_SIZE_Y;
@@ -67,9 +67,7 @@ export class Chunk {
 	}
 
 	rebuildMesh() {
-		const shadowGenerator = this.scene.metadata?.iftShadowGenerator ?? null;
 		if (this.mesh) {
-			shadowGenerator?.removeShadowCaster?.(this.mesh, false);
 			this.mesh.dispose(false, false);
 			this.mesh = null;
 		}
@@ -156,10 +154,10 @@ export class Chunk {
 		mesh.checkCollisions = true;
 		mesh.isPickable = true;
 		mesh.receiveShadows = true;
+		mesh.alwaysSelectAsActiveMesh = false;
 		mesh.metadata = { isVoxelChunk: true, chunk: this, faceCount: totalFaces };
 		mesh.freezeWorldMatrix();
 		mesh.freezeNormals();
-		shadowGenerator?.addShadowCaster?.(mesh, false);
 		this.mesh = mesh;
 	}
 }
