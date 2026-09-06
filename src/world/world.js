@@ -63,8 +63,33 @@ export class VoxelWorld {
 
 	setBlock(x, y, z, id) {
 		const { cx, cy, cz, lx, ly, lz } = this.worldToChunk(x, y, z);
-		const chunk = this.ensureChunk(cx, cy, cz);
+		const chunk = id === BLOCKS.AIR ? this.getChunk(cx, cy, cz) : this.ensureChunk(cx, cy, cz);
+		if (!chunk) return false;
+		if (chunk.getLocal(lx, ly, lz) === id) return false;
 		chunk.setLocal(lx, ly, lz, id);
+		return true;
+	}
+
+	setBlockAndRebuild(x, y, z, id) {
+		const location = this.worldToChunk(x, y, z);
+		if (!this.setBlock(x, y, z, id)) return false;
+		this.rebuildEditedLocation(location);
+		return true;
+	}
+
+	rebuildEditedLocation({ cx, cy, cz, lx, ly, lz }) {
+		const rebuild = new Set([this.chunkKey(cx, cy, cz)]);
+		if (lx === 0) rebuild.add(this.chunkKey(cx - 1, cy, cz));
+		if (lx === SX - 1) rebuild.add(this.chunkKey(cx + 1, cy, cz));
+		if (ly === 0) rebuild.add(this.chunkKey(cx, cy - 1, cz));
+		if (ly === SY - 1) rebuild.add(this.chunkKey(cx, cy + 1, cz));
+		if (lz === 0) rebuild.add(this.chunkKey(cx, cy, cz - 1));
+		if (lz === SZ - 1) rebuild.add(this.chunkKey(cx, cy, cz + 1));
+
+		for (const key of rebuild) {
+			const chunk = this.chunks.get(key);
+			if (chunk) chunk.rebuildMesh();
+		}
 	}
 
 	getSurfaceYAt(x, z, maxY = WORLD_CONFIG.CHUNK_SIZE_Y * 4) {
