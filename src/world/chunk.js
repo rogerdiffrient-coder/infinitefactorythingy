@@ -34,7 +34,7 @@ function hashRotation(seed, x, y, z, faceIndex) {
 }
 
 function createGroup() {
-	return { positions: [], indices: [], uvs: [], vertexBase: 0, faces: 0 };
+	return { positions: [], indices: [], uvs: [], normals: [], vertexBase: 0, faces: 0 };
 }
 
 export class Chunk {
@@ -97,7 +97,10 @@ export class Chunk {
 						const [dx, dy, dz] = face.dir;
 						if (this.world.getBlock(worldX + dx, worldY + dy, worldZ + dz) !== BLOCKS.AIR) continue;
 
-						for (const [vx, vy, vz] of face.vertices) group.positions.push(x + vx, y + vy, z + vz);
+						for (const [vx, vy, vz] of face.vertices) {
+							group.positions.push(x + vx, y + vy, z + vz);
+							group.normals.push(dx, dy, dz);
+						}
 						group.uvs.push(...UV_ROTATIONS[hashRotation(this.world.seed, worldX, worldY, worldZ, faceIndex)]);
 						group.indices.push(group.vertexBase, group.vertexBase + 1, group.vertexBase + 2, group.vertexBase, group.vertexBase + 2, group.vertexBase + 3);
 						group.vertexBase += 4;
@@ -123,13 +126,13 @@ export class Chunk {
 			const indexCount = group.indices.length;
 			positions.push(...group.positions);
 			uvs.push(...group.uvs);
+			normals.push(...group.normals);
 			indices.push(...group.indices.map(index => index + vertexOffset));
 			materialGroups.push({ blockId, vertexOffset, vertexCount, indexOffset, indexCount });
 			vertexOffset += vertexCount;
 			indexOffset += indexCount;
 		}
 
-		BABYLON.VertexData.ComputeNormals(positions, indices, normals);
 		const mesh = new BABYLON.Mesh(`chunk-${this.chunkX}-${this.chunkY}-${this.chunkZ}`, this.scene);
 		const vertexData = new BABYLON.VertexData();
 		vertexData.positions = positions;
