@@ -7,13 +7,14 @@ const DIMENSIONS = Object.freeze({
 	TORSO_HEIGHT: 0.58,
 	TORSO_DEPTH: 0.28,
 	ARM_WIDTH: 0.18,
-	ARM_LENGTH: 0.60,
+	ARM_LENGTH: 0.50,
 	ARM_DEPTH: 0.20,
+	HAND_LENGTH: 0.12,
 	LEG_WIDTH: 0.22,
 	LEG_LENGTH: 0.70,
 	LEG_DEPTH: 0.24,
-	SHOULDER_GAP: 0.03,
-	HIP_GAP: 0.04
+	SHOULDER_GAP: -0.015,
+	HIP_GAP: 0.0
 });
 
 const FACE_UV = Object.freeze([
@@ -87,10 +88,11 @@ export class PlayerModel {
 		this.firstPerson = true;
 
 		this.materials = {
-			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png?v=player-model-19'),
-			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png?v=player-model-19'),
-			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png?v=player-model-19'),
-			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png?v=player-model-19')
+			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png?v=player-model-20'),
+			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png?v=player-model-20'),
+			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png?v=player-model-20'),
+			hand: makeTextureMaterial(scene, 'player-hand-material', 'Assets/Player/Default/hand.png?v=player-model-20'),
+			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png?v=player-model-20')
 		};
 
 		const legTopY = DIMENSIONS.LEG_LENGTH;
@@ -134,6 +136,18 @@ export class PlayerModel {
 			depth: DIMENSIONS.ARM_DEPTH
 		}, this.materials.arm, this.rightArmPivot, new BABYLON.Vector3(0, -DIMENSIONS.ARM_LENGTH / 2, 0));
 
+		this.leftHand = makePart(scene, 'player-left-hand', {
+			width: DIMENSIONS.ARM_WIDTH,
+			height: DIMENSIONS.HAND_LENGTH,
+			depth: DIMENSIONS.ARM_DEPTH
+		}, this.materials.hand, this.leftArmPivot, new BABYLON.Vector3(0, -DIMENSIONS.ARM_LENGTH - DIMENSIONS.HAND_LENGTH / 2, 0));
+
+		this.rightHand = makePart(scene, 'player-right-hand', {
+			width: DIMENSIONS.ARM_WIDTH,
+			height: DIMENSIONS.HAND_LENGTH,
+			depth: DIMENSIONS.ARM_DEPTH
+		}, this.materials.hand, this.rightArmPivot, new BABYLON.Vector3(0, -DIMENSIONS.ARM_LENGTH - DIMENSIONS.HAND_LENGTH / 2, 0));
+
 		this.leftLeg = makePart(scene, 'player-left-leg', {
 			width: DIMENSIONS.LEG_WIDTH,
 			height: DIMENSIONS.LEG_LENGTH,
@@ -146,7 +160,7 @@ export class PlayerModel {
 			depth: DIMENSIONS.LEG_DEPTH
 		}, this.materials.leg, this.rightLegPivot, new BABYLON.Vector3(0, -DIMENSIONS.LEG_LENGTH / 2, 0));
 
-		this.meshes = [this.torso, this.head, this.leftArm, this.rightArm, this.leftLeg, this.rightLeg];
+		this.meshes = [this.torso, this.head, this.leftArm, this.rightArm, this.leftHand, this.rightHand, this.leftLeg, this.rightLeg];
 		this.setFirstPerson(true);
 	}
 
