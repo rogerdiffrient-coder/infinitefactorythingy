@@ -1,8 +1,8 @@
 import { HEALTH_CONFIG } from '../config.js?v=bug-sweep-15';
 
-const HEART_FULL = 'Assets/UI/Health/Hearts/heart-full.png';
-const HEART_HALF = 'Assets/UI/Health/Hearts/heart-half.png';
-const HEART_EMPTY = 'Assets/UI/Health/Hearts/heart-empty.png';
+const HEART_FULL = 'Assets/UI/Health/Hearts/heart-full.png?v=player-model-20';
+const HEART_HALF = 'Assets/UI/Health/Hearts/heart-half.png?v=player-model-20';
+const HEART_EMPTY = 'Assets/UI/Health/Hearts/heart-empty.png?v=player-model-20';
 
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
