@@ -1,5 +1,5 @@
 import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=bug-sweep-15';
-import { PlayerModel } from './playerModel.js?v=player-model-20';
+import { PlayerModel } from './playerModel.js?v=player-model-21';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
@@ -417,9 +417,21 @@ export class PlayerController {
 		}
 	}
 
+	getEyePosition() {
+		const eyeLevel = this.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL;
+		return new BABYLON.Vector3(this.body.position.x, this.getFeetY() + eyeLevel, this.body.position.z);
+	}
+
 	pickTarget() {
-		const ray = this.camera.getForwardRay(PLAYER_CONFIG.MAX_REACH);
-		return this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
+		// Third-person cameras sit several blocks away from the player, so a ray limited
+		// to survival reach *from the camera* makes interaction almost unusable. Cast
+		// far enough to cover the camera offset, then enforce reach from the player's eye.
+		const cameraAllowance = this.thirdPerson ? THIRD_PERSON_DISTANCE + THIRD_PERSON_HEIGHT + 1 : 0;
+		const ray = this.camera.getForwardRay(PLAYER_CONFIG.MAX_REACH + cameraAllowance);
+		const hit = this.scene.pickWithRay(ray, mesh => Boolean(mesh.metadata?.isVoxelChunk));
+		if (!hit?.hit || !hit.pickedPoint) return hit;
+		if (BABYLON.Vector3.Distance(this.getEyePosition(), hit.pickedPoint) > PLAYER_CONFIG.MAX_REACH + 0.001) return null;
+		return hit;
 	}
 
 	getPosition() {

@@ -88,11 +88,11 @@ export class PlayerModel {
 		this.firstPerson = true;
 
 		this.materials = {
-			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png?v=player-model-20'),
-			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png?v=player-model-20'),
-			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png?v=player-model-20'),
-			hand: makeTextureMaterial(scene, 'player-hand-material', 'Assets/Player/Default/hand.png?v=player-model-20'),
-			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png?v=player-model-20')
+			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png?v=player-model-21'),
+			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png?v=player-model-21'),
+			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png?v=player-model-21'),
+			hand: makeTextureMaterial(scene, 'player-hand-material', 'Assets/Player/Default/hand.png?v=player-model-21'),
+			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png?v=player-model-21')
 		};
 
 		const legTopY = DIMENSIONS.LEG_LENGTH;
@@ -123,6 +123,9 @@ export class PlayerModel {
 			height: DIMENSIONS.HEAD,
 			depth: DIMENSIONS.HEAD
 		}, this.materials.head, this.headPivot, new BABYLON.Vector3(0, DIMENSIONS.HEAD / 2 + 0.02, 0));
+		// Babylon's box front face is -Z, while this character's forward direction is +Z.
+		// Rotate only the head mesh so the face artwork is actually on the character's front.
+		this.head.rotation.y = Math.PI;
 
 		this.leftArm = makePart(scene, 'player-left-arm', {
 			width: DIMENSIONS.ARM_WIDTH,
