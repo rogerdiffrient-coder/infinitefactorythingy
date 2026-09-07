@@ -3,10 +3,10 @@ import { InputState } from './input/input.js?v=bug-sweep-15';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=bug-sweep-15';
 import { VoxelWorld } from './world/world.js?v=bug-sweep-15';
 import { WorldManager } from './world/worldManager.js?v=bug-sweep-15';
-import { BlockInteraction } from './world/blockInteraction.js?v=player-model-19';
+import { BlockInteraction } from './world/blockInteraction.js?v=player-model-20';
 import { DayNightCycle } from './world/dayNightCycle.js?v=bug-sweep-15';
-import { PlayerController } from './player/playerController.js?v=player-model-19';
-import { HealthSystem } from './player/healthSystem.js?v=bug-sweep-15';
+import { PlayerController } from './player/playerController.js?v=player-model-20';
+import { HealthSystem } from './player/healthSystem.js?v=player-model-20';
 import { TitleScreen } from './ui/titleScreen.js?v=bug-sweep-15';
 
 const canvas = document.querySelector('#renderCanvas');
@@ -160,6 +160,7 @@ function setDevOverlayVisible(visible) {
 	devOverlayVisible = visible;
 	devLeft.classList.toggle('hidden', !visible);
 	debug.classList.toggle('hidden', !visible);
+	target.classList.toggle('hidden', !visible);
 }
 
 setDevOverlayVisible(false);
@@ -252,7 +253,7 @@ function updateDebug(dt) {
 		`SKY ${cycle.label} ${(cycle.progress * 100).toFixed(1)}%`,
 		`VISIBLE CHUNKS ${cycle.visibleChunks ?? 0} · SHADOW CASTERS ${cycle.shadowCasters ?? 0}`,
 		`XYZ ${position.x.toFixed(3)} / ${position.y.toFixed(3)} / ${position.z.toFixed(3)}`,
-		`VIEW ${player.thirdPerson ? 'THIRD PERSON' : 'FIRST PERSON'} · F5 TOGGLE`,
+		`VIEW ${!player.thirdPerson ? 'FIRST PERSON' : player.thirdPersonFront ? 'THIRD PERSON FRONT' : 'THIRD PERSON BACK'} · F5 TOGGLE`,
 		`SPRINT ${player.sprinting ? 'ON' : 'OFF'}`,
 		`PLAYER ${PLAYER_CONFIG.WIDTH.toFixed(1)}m × ${PLAYER_CONFIG.HEIGHT.toFixed(1)}m`,
 		`EYE ${player.sneaking ? PLAYER_CONFIG.SNEAK_EYE_LEVEL : PLAYER_CONFIG.EYE_LEVEL}m`,
