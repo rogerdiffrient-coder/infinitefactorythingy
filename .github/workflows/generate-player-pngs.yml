@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'scripts/generate_player_pngs.py'
+      - 'scripts/fix_player_view.py'
       - '.github/workflows/generate-player-pngs.yml'
   workflow_dispatch:
 
@@ -20,17 +21,20 @@ jobs:
       - name: Generate PNG assets
         run: python3 scripts/generate_player_pngs.py
 
+      - name: Patch player view and interaction
+        run: python3 scripts/fix_player_view.py
+
       - name: Remove old SVG player textures
         run: rm -f Assets/Player/Default/*.svg
 
-      - name: Commit generated assets
+      - name: Commit generated assets and player patches
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Assets/Player/Default Assets/UI/Health/Hearts
+          git add Assets/Player/Default Assets/UI/Health/Hearts src/player/playerModel.js src/player/playerController.js src/main.js index.html
           if git diff --cached --quiet; then
-            echo "No generated asset changes."
+            echo "No generated player changes."
             exit 0
           fi
-          git commit -m "Generate player and heart PNG assets"
+          git commit -m "Fix player face and third-person interaction"
           git push
