@@ -3,6 +3,7 @@ import struct
 import zlib
 
 OUT = 'Assets/Player/Default'
+HEART_OUT = 'Assets/UI/Health/Hearts'
 SIZE = 16
 COLS = 3
 ROWS = 2
@@ -20,7 +21,7 @@ def shade(color, amount):
 
 
 def put_pixel(pixels, x, y, color):
-	if 0 <= x < WIDTH and 0 <= y < HEIGHT:
+	if 0 <= y < len(pixels) and 0 <= x < len(pixels[0]):
 		pixels[y][x] = color
 
 
@@ -43,6 +44,8 @@ def rect(pixels, tx, ty, x, y, w, h, color):
 
 
 def write_png(path, pixels):
+	height = len(pixels)
+	width = len(pixels[0])
 	raw = bytearray()
 	for row in pixels:
 		raw.append(0)
@@ -53,7 +56,7 @@ def write_png(path, pixels):
 		return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
 
 	png = bytearray(b'\x89PNG\r\n\x1a\n')
-	png += chunk(b'IHDR', struct.pack('>IIBBBBB', WIDTH, HEIGHT, 8, 6, 0, 0, 0))
+	png += chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
 	png += chunk(b'IDAT', zlib.compress(bytes(raw), 9))
 	png += chunk(b'IEND', b'')
 	with open(path, 'wb') as f:
@@ -114,15 +117,16 @@ def make_torso():
 def make_arm():
 	p = blank()
 	sleeve = (40, 132, 181, 255)
-	skin = (214, 161, 112, 255)
 	for i, (tx, ty) in enumerate(((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1))):
 		fill_tile(p, tx, ty, sleeve, 50 + i)
-	# Babylon's current atlas orientation maps the top of these source tiles to the
-	# bottom/wrist end of the arm mesh, so the hand strip belongs at y=0 here.
-	for tx, ty in ((0, 0), (1, 0), (2, 0), (0, 1)):
-		rect(p, tx, ty, 0, 0, 16, 5, skin)
-	rect(p, 1, 1, 0, 0, 16, 16, sleeve)
-	rect(p, 2, 1, 0, 0, 16, 16, skin)
+	return p
+
+
+def make_hand():
+	p = blank()
+	skin = (214, 161, 112, 255)
+	for i, (tx, ty) in enumerate(((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1))):
+		fill_tile(p, tx, ty, skin, 60 + i)
 	return p
 
 
@@ -141,31 +145,69 @@ def make_leg():
 	return p
 
 
-def replace_in_file(path, old, new):
-	with open(path, 'r', encoding='utf-8') as f:
-		content = f.read()
-	if old not in content:
-		return
-	with open(path, 'w', encoding='utf-8') as f:
-		f.write(content.replace(old, new))
-	print('patched', path)
+def make_heart(kind):
+	transparent = (0, 0, 0, 0)
+	outline = (31, 20, 28, 255)
+	red = (241, 58, 71, 255)
+	dark_red = (174, 37, 50, 255)
+	gray = (69, 75, 84, 255)
+	p = [[transparent for _ in range(16)] for _ in range(16)]
+	shape = [
+		'..###..###...',
+		'.#####.#####..',
+		'#############.',
+		'#############.',
+		'#############.',
+		'.###########..',
+		'..#########...',
+		'...#######....',
+		'....#####.....',
+		'.....###......',
+		'......#.......'
+	]
+	for sy, row in enumerate(shape):
+		for sx, ch in enumerate(row):
+			if ch != '#':
+				continue
+			x = sx + 1
+			y = sy + 2
+			if kind == 'empty':
+				color = gray
+			elif kind == 'half' and sx >= len(row) // 2:
+				color = gray
+			else:
+				color = red if sy < 6 else dark_red
+			put_pixel(p, x, y, color)
+	# chunky dark pixel outline
+	copy = [row[:] for row in p]
+	for y in range(16):
+		for x in range(16):
+			if copy[y][x][3] == 0:
+				continue
+			for dx, dy in ((1,0),(-1,0),(0,1),(0,-1)):
+				nx, ny = x + dx, y + dy
+				if 0 <= nx < 16 and 0 <= ny < 16 and copy[ny][nx][3] == 0:
+					put_pixel(p, x, y, outline)
+					break
+	return p
 
 
 os.makedirs(OUT, exist_ok=True)
+os.makedirs(HEART_OUT, exist_ok=True)
 for name, maker in (
 	('head.png', make_head),
 	('torso.png', make_torso),
 	('arm.png', make_arm),
+	('hand.png', make_hand),
 	('leg.png', make_leg),
 ):
 	write_png(os.path.join(OUT, name), maker())
 	print('wrote', os.path.join(OUT, name))
 
-replace_in_file('src/player/playerModel.js', "Assets/Player/Default/head.png", "Assets/Player/Default/head.png?v=player-model-19")
-replace_in_file('src/player/playerModel.js', "Assets/Player/Default/torso.png", "Assets/Player/Default/torso.png?v=player-model-19")
-replace_in_file('src/player/playerModel.js', "Assets/Player/Default/arm.png", "Assets/Player/Default/arm.png?v=player-model-19")
-replace_in_file('src/player/playerModel.js', "Assets/Player/Default/leg.png", "Assets/Player/Default/leg.png?v=player-model-19")
-replace_in_file('src/player/playerController.js', "./playerModel.js?v=player-model-18", "./playerModel.js?v=player-model-19")
-replace_in_file('src/main.js', "./world/blockInteraction.js?v=player-model-18", "./world/blockInteraction.js?v=player-model-19")
-replace_in_file('src/main.js', "./player/playerController.js?v=player-model-18", "./player/playerController.js?v=player-model-19")
-replace_in_file('index.html', "src/main.js?v=player-model-18", "src/main.js?v=player-model-19")
+for name, kind in (
+	('heart-full.png', 'full'),
+	('heart-half.png', 'half'),
+	('heart-empty.png', 'empty'),
+):
+	write_png(os.path.join(HEART_OUT, name), make_heart(kind))
+	print('wrote', os.path.join(HEART_OUT, name))
