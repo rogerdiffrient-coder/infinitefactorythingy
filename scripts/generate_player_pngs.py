@@ -117,8 +117,10 @@ def make_arm():
 	skin = (214, 161, 112, 255)
 	for i, (tx, ty) in enumerate(((0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1))):
 		fill_tile(p, tx, ty, sleeve, 50 + i)
+	# Babylon's current atlas orientation maps the top of these source tiles to the
+	# bottom/wrist end of the arm mesh, so the hand strip belongs at y=0 here.
 	for tx, ty in ((0, 0), (1, 0), (2, 0), (0, 1)):
-		rect(p, tx, ty, 0, 11, 16, 5, skin)
+		rect(p, tx, ty, 0, 0, 16, 5, skin)
 	rect(p, 1, 1, 0, 0, 16, 16, sleeve)
 	rect(p, 2, 1, 0, 0, 16, 16, skin)
 	return p
@@ -159,7 +161,11 @@ for name, maker in (
 	write_png(os.path.join(OUT, name), maker())
 	print('wrote', os.path.join(OUT, name))
 
-replace_in_file('src/player/playerController.js', "./playerModel.js?v=player-model-17", "./playerModel.js?v=player-model-18")
-replace_in_file('src/main.js', "./world/blockInteraction.js?v=player-model-17", "./world/blockInteraction.js?v=player-model-18")
-replace_in_file('src/main.js', "./player/playerController.js?v=player-model-17", "./player/playerController.js?v=player-model-18")
-replace_in_file('index.html', "src/main.js?v=player-model-17", "src/main.js?v=player-model-18")
+replace_in_file('src/player/playerModel.js', "Assets/Player/Default/head.png", "Assets/Player/Default/head.png?v=player-model-19")
+replace_in_file('src/player/playerModel.js', "Assets/Player/Default/torso.png", "Assets/Player/Default/torso.png?v=player-model-19")
+replace_in_file('src/player/playerModel.js', "Assets/Player/Default/arm.png", "Assets/Player/Default/arm.png?v=player-model-19")
+replace_in_file('src/player/playerModel.js', "Assets/Player/Default/leg.png", "Assets/Player/Default/leg.png?v=player-model-19")
+replace_in_file('src/player/playerController.js', "./playerModel.js?v=player-model-18", "./playerModel.js?v=player-model-19")
+replace_in_file('src/main.js', "./world/blockInteraction.js?v=player-model-18", "./world/blockInteraction.js?v=player-model-19")
+replace_in_file('src/main.js', "./player/playerController.js?v=player-model-18", "./player/playerController.js?v=player-model-19")
+replace_in_file('index.html', "src/main.js?v=player-model-18", "src/main.js?v=player-model-19")
