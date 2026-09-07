@@ -87,10 +87,10 @@ export class PlayerModel {
 		this.firstPerson = true;
 
 		this.materials = {
-			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png'),
-			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png'),
-			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png'),
-			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png')
+			head: makeTextureMaterial(scene, 'player-head-material', 'Assets/Player/Default/head.png?v=player-model-19'),
+			torso: makeTextureMaterial(scene, 'player-torso-material', 'Assets/Player/Default/torso.png?v=player-model-19'),
+			arm: makeTextureMaterial(scene, 'player-arm-material', 'Assets/Player/Default/arm.png?v=player-model-19'),
+			leg: makeTextureMaterial(scene, 'player-leg-material', 'Assets/Player/Default/leg.png?v=player-model-19')
 		};
 
 		const legTopY = DIMENSIONS.LEG_LENGTH;

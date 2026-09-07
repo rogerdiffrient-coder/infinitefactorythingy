@@ -3,9 +3,9 @@ import { InputState } from './input/input.js?v=bug-sweep-15';
 import { getBlockDefinition, getBlockMaterial } from './world/blockRegistry.js?v=bug-sweep-15';
 import { VoxelWorld } from './world/world.js?v=bug-sweep-15';
 import { WorldManager } from './world/worldManager.js?v=bug-sweep-15';
-import { BlockInteraction } from './world/blockInteraction.js?v=player-model-18';
+import { BlockInteraction } from './world/blockInteraction.js?v=player-model-19';
 import { DayNightCycle } from './world/dayNightCycle.js?v=bug-sweep-15';
-import { PlayerController } from './player/playerController.js?v=player-model-18';
+import { PlayerController } from './player/playerController.js?v=player-model-19';
 import { HealthSystem } from './player/healthSystem.js?v=bug-sweep-15';
 import { TitleScreen } from './ui/titleScreen.js?v=bug-sweep-15';
 
