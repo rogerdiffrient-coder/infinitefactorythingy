@@ -1,5 +1,5 @@
 import { PLAYER_CONFIG, RENDER_CONFIG } from '../config.js?v=bug-sweep-15';
-import { PlayerModel } from './playerModel.js?v=player-model-19';
+import { PlayerModel } from './playerModel.js?v=player-model-20';
 
 const GROUND_TOLERANCE = 0.08;
 const SPAWN_CLEARANCE = 0.002;
@@ -25,6 +25,7 @@ export class PlayerController {
 		this.doubleTapSprinting = false;
 		this.moveAmount = 0;
 		this.thirdPerson = false;
+		this.thirdPersonFront = false;
 
 		this.body = BABYLON.MeshBuilder.CreateBox('player-collider', { size: 0.1 }, scene);
 		this.body.isVisible = false;
@@ -119,7 +120,7 @@ export class PlayerController {
 		const sprintRequested = this.input.controlDown() || this.doubleTapSprinting;
 		this.sprinting = !this.sneaking && inputLength > 0 && sprintRequested;
 
-		const yaw = this.camera.rotation.y;
+		const yaw = this.getMovementYaw();
 		const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
 		const right = new BABYLON.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 		const direction = forward.scale(forwardInput).add(right.scale(sideInput));
@@ -150,12 +151,16 @@ export class PlayerController {
 		this.updateModel(dt);
 	}
 
+	getMovementYaw() {
+		return this.thirdPersonFront ? this.camera.rotation.y + Math.PI : this.camera.rotation.y;
+	}
+
 	updateModel(dt) {
 		this.model.update(dt, {
 			x: this.body.position.x,
 			feetY: this.getFeetY(),
 			z: this.body.position.z,
-			yaw: this.camera.rotation.y,
+			yaw: this.getMovementYaw(),
 			pitch: this.camera.rotation.x,
 			moveAmount: this.moveAmount,
 			sprinting: this.sprinting,
@@ -166,7 +171,17 @@ export class PlayerController {
 	}
 
 	togglePerspective() {
-		this.thirdPerson = !this.thirdPerson;
+		if (!this.thirdPerson) {
+			this.thirdPerson = true;
+			this.thirdPersonFront = false;
+		} else if (!this.thirdPersonFront) {
+			this.thirdPersonFront = true;
+			this.camera.rotation.y += Math.PI;
+		} else {
+			this.thirdPerson = false;
+			this.thirdPersonFront = false;
+			this.camera.rotation.y += Math.PI;
+		}
 		this.model.setFirstPerson(!this.thirdPerson);
 		this.model.applyCameraLayer(this.camera);
 		this.syncCamera();
